@@ -14,7 +14,7 @@
 namespace po = boost::program_options;
 string exepath;
 string network_file, output_file, str_mode, str_display;
-int playout, seed, selfplay_count;
+int playout, seed, selfplay_count, loglevel;
 float puct;
 
 #if 1
@@ -72,7 +72,7 @@ int run()
 	else if (mode == 1)
 	{
 		cfg_quiet = true;
-		//logOpen(exepath + "/Gmk0.log");
+		if (loglevel) logOpen(exepath + "/Gmk0.log");
 		if (!boost::filesystem::exists(network_file))
 		{
 			cout << "ERROR could not find weight file " << network_file;
@@ -83,7 +83,7 @@ int run()
 	}
 	else if (mode == 2 || mode == 3)
 	{
-		logOpen(exepath + "/Gmk0.log");
+		if (loglevel) logOpen(exepath + "/Gmk0.log");
 		Player player1(network_file, playout, puct, false, true, 0.6f);
 		minit();
 		game.runGameUser(player1, mode - 1);
@@ -114,6 +114,8 @@ int getOptionCmdLine(int argc, char ** argv)
 		("seed,s", po::value(&seed)->default_value(time(NULL)), "random seed")
 		("selfplaycount,c", po::value(&selfplay_count)->default_value(2048), "count of selfplay games")
 		("puct", po::value(&puct)->default_value(1.4f), "uct policy constant")
+		("swap3", po::value(&cfg_swap3)->default_value(true), "use swap3")
+		("logs", po::value(&loglevel)->default_value(0), "use log")
 		;
 	po::variables_map vm;
 	try
@@ -150,6 +152,7 @@ int getOptionJson()
 		selfplay_count = root.get<int>("selfplaycount", 2048);
 		puct = root.get<float>("puct", 1.4f);
 		cfg_swap3 = root.get<bool>("swap3", true);
+		loglevel = root.get<bool>("logs", 0);
 	}
 	catch (std::exception &err)
 	{

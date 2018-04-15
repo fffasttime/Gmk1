@@ -86,17 +86,21 @@ void MCTS::unmake_move(int move)
 void MCTS::createRoot()
 {
 	trcnt = 1;
+	stopflag = false;
 	tr[root].cnt = 1;
 	tr[root].fa = -1;
 	tr[root].move = -1;
 	auto result = getEvaluation(board, nowcol, network, use_transform);
 	tr[root].sumv = -result.first.v;
 	expand(root, result.first ,result.second);
+	if (result.second.count() == 1) 
+		stopflag = true;
 	debug_s << "net win: " << result.first.v << '\n';
 	if (result.first.v > 0.99)
-	{
-		debug_s << "win\n";
-	}
+		debug_s << "dec:win\n";
+	else if (result.first.v <-0.99)
+		debug_s << "dec:loss\n";
+
 	if (add_noise)
 		addNoise(root, 0.25f, 0.1f);
 }
@@ -130,9 +134,11 @@ int MCTS::selection(int cur)
 
 void MCTS::solve(BoardWeight &result)
 {
+	debug_s << "step:" << board.count() + 1<<'\n';
 	createRoot();
 	for (int i = 0; i < playouts; i++)
 	{
+		if (stopflag && i>0) break;
 		int cur = root;
 		while (1)
 		{
@@ -164,7 +170,7 @@ void MCTS::solve(BoardWeight &result)
 		simulation_back(cur);
 	}
 	mcwin = -tr[root].sumv / tr[root].cnt;
-	debug_s << "mc win: " << mcwin <<'\n' << counter << '\n';
+	debug_s << "mc win: " << mcwin <<'\n' << "counter:" << counter << '\n';
 	logRefrsh();
 	result.clear();
 	for (auto ch : tr[root].ch)
@@ -292,8 +298,8 @@ Coord Player::randomOpening(Board gameboard)
 {
 	if (gameboard.count() == 0)
 	{
-		return { 4+rand()%7, 4 + rand() % 7 };
-	}
+		return { 2+rand()%11, 2 + rand() % 11 };
+	}/*
 	else if (gameboard.count() == 1)
 	{
 		int first;
@@ -325,7 +331,7 @@ Coord Player::randomOpening(Board gameboard)
 		for (int i = 0; i < BLSIZE; i++)
 			po[i] /= sum;
 		return randomSelect(po, BLSIZE);
-	}
+	}*/
 }
 
 Coord Player::run(Board &gameboard, int nowcol)
@@ -339,6 +345,7 @@ Coord Player::run(Board &gameboard, int nowcol)
 		ret = Coord(mcts.solvePolicy(cfg_temprature2, policy, winrate));
 	else
 		ret = Coord(mcts.solvePolicy(cfg_temprature1, policy, winrate));
+	if (gameboard.count() == 0) return randomOpening(gameboard);
 	if (cfg_swap3 && gameboard.count() == 3 && gameboard.countv(2)==1 && mcts.mcwin<0)
 		return Coord(BLSIZE);
 	return ret;

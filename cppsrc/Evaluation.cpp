@@ -31,6 +31,10 @@ namespace Prior
 			if (piece == Empty) std::cout << "  ";
 			else std::cout << ' '<< piece;
 		}
+		int maxv(int col)
+		{
+			return std::max(std::max(pattern[col][0], pattern[col][1]), std::max(pattern[col][2], pattern[col][3]));
+		}
 	};
 	#define BDSIZE (BSIZE + 8)
 	constexpr int range[8] = { -1,-BDSIZE - 1,-BDSIZE,-BDSIZE + 1,1,BDSIZE - 1,BDSIZE,BDSIZE + 1 };
@@ -542,10 +546,87 @@ namespace Prior
 		return result;
 	}
 
+	bool c1(std::vector<Point> &cand)
+	{
+		int cb = 0, cw = 0, bx, by;
+		for (int i = b_start; i < b_end; i++)
+			for (int j = b_start; j < b_end; j++)
+				if (cell[i*BDSIZE + j].piece == Black)
+					cb++, bx=i, by=j;
+				else if (cell[i*BDSIZE + j].piece == White)
+					cw++;
+		if (cb == 0 && cw==0)
+		{
+			for (int i = b_start; i < b_end; i++)
+				for (int j = b_start; j < b_end; j++)
+					if (std::max(abs(i-BDSIZE/2), abs(j- BDSIZE / 2))<=5)
+					{
+						int val = EvaluateMove(&cell(i, j));
+						cand.push_back({ i*BDSIZE + j, val });
+					}
+			return 1;
+		}
+		if (cb == 1 && cw==0)
+		{
+			for (int i = b_start; i < b_end; i++)
+				for (int j = b_start; j < b_end; j++)
+					if (std::max(abs(i-bx), abs(j-by))<=2 && cell[i*BDSIZE+j].piece==Empty)
+					{
+						int val = EvaluateMove(&cell(i, j));
+						cand.push_back({ i*BDSIZE + j, val });
+					}
+			return 1;
+		}
+		return 0;
+	}
+
+	Board featurelayer[2][4];
+	void getFeature()
+	{
+		memset(featurelayer, 0, sizeof(featurelayer));
+		for (int i = b_start; i < b_end; i++)
+			for (int j = b_start; j < b_end; j++)
+				if (cell[i*BDSIZE + j].piece == Empty)
+				{
+					int c0 = cell[i*BDSIZE + j].maxv(who);
+					int c1 = cell[i*BDSIZE + j].maxv(opp);
+					if (c0>1) featurelayer[0][0](i-4,j-4) = 1;
+					if (c0>2) featurelayer[0][1](i - 4, j - 4) = 1;
+					if (c0>3) featurelayer[0][2](i - 4, j - 4) = 1;
+					if (c0>5) featurelayer[0][3](i - 4, j - 4) = 1;
+					if (c1>1) featurelayer[1][0](i - 4, j - 4) = 1;
+					if (c1>2) featurelayer[1][1](i - 4, j - 4) = 1;
+					if (c1>3) featurelayer[1][2](i - 4, j - 4) = 1;
+					if (c1>5) featurelayer[1][3](i - 4, j - 4) = 1;
+				}
+	}
+
+	void GenerateMoveOpp(std::vector<int> &moves)
+	{
+		BoardArray<int, BDSIZE> visited;
+		visited.clear();
+		int s0 = moves.size();
+		for (auto i : moves)
+			visited[i] = 1;
+		for (int i = 0; i < s0; i++)
+			for (auto j : Range4)
+			{
+				int pos = moves[i] + j;
+				if (cell[pos].piece == Empty && !visited[pos])
+				{
+					MakeMove(pos);
+					if (!judgewin_current()) moves.push_back(pos);
+					DelMove(pos);
+				}
+				visited[pos] = 1;
+			}
+	}
+
 	int GenerateMove(std::vector<int> &result)
 	{
 		std::vector<Point> cand;
 		int val;
+		if (c1(cand)) goto start;
 		for (int i = b_start; i < b_end; i++)
 			for (int j = b_start; j < b_end; j++)
 				if (cell[i*BDSIZE + j].piece == Empty)
@@ -553,21 +634,49 @@ namespace Prior
 					val = EvaluateMove(&cell(i,j));
 					cand.push_back({ i*BDSIZE + j, val });
 				}
+		start:
 		std::sort(cand.begin(), cand.end(), [](const auto &a, const auto &b) {return a.val > b.val; });
 		std::vector<int> moves;
 		int ret=CutMoveList(moves, cand);
+		
 		auto vcf_move = vcf_root();
-		if (vcf_move.size() && cand[0].val<2400)
+		if (vcf_move.size() && cand[0].val<2000) //my vcf
 		{
 			for (auto &i : vcf_move)
 				result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
 			return 1;
 		}
+		
+
 		if (moves.empty()) {
+			who ^= 1, opp ^= 1;
+			auto vcf_move = vcf_root();
+			who ^= 1, opp ^= 1;
+			if (vcf_move.size() && cand[0].val<1000) //opp vcf
+			{
+				for (int i = lowerRight; i < upperLeft; i++)
+					if (cell[i].piece == Empty)
+					{
+						auto p = &cell[i];
+						if (IsType(p, who, block4) || IsType(p, who, flex3))
+							result.push_back(Coord(i / BDSIZE - 4, i % BDSIZE - 4).p());
+					}
+				for (auto &i : vcf_move)
+				{
+					for (auto j : Range4)
+						if (cell[i + j].piece == Empty && EvaluateMove(&cell[i+j])>15)
+							result.push_back(Coord((i + j) / BDSIZE - 4, (i + j) % BDSIZE - 4).p());
+					result.push_back(Coord(i / BDSIZE - 4, i % BDSIZE - 4).p());
+				}
+				return 0;
+			}
+
 			for (auto &i : cand)
 				result.push_back(Coord(i.p / BDSIZE - 4, i.p%BDSIZE - 4).p());
 		}
 		else{
+			if (ret == 0 && cand[0].val >= 200)
+				GenerateMoveOpp(moves);
 			for (auto &i : moves)
 				result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
 		}
@@ -626,7 +735,11 @@ std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, boo
 		trans = 0;
 	boardTransform(trans, board);
 	Network::NNPlanes input;
+#if 1
 	input.resize(2);
+#else
+	input.resize(10);
+#endif
 	for (int i = 0; i < BLSIZE; i++)
 	{
 		if (board[i] == 0)
@@ -645,6 +758,17 @@ std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, boo
 			input[1][i] = 1;
 		}
 	}
+#if 0
+	assert(Prior::who==col-1);
+	Prior::getFeature();
+	for (int k = 0; k<8; k++)
+	{ 
+		boardTransform(trans, Prior::featurelayer[k / 4][k % 4]);
+		for (int i = 0; i<BSIZE; i++)
+			for (int j = 0; j<BSIZE; j++)
+				input[k+2][i*BSIZE+j] = Prior::featurelayer[k / 4][k % 4](i,j);
+	}
+#endif
 	std::vector<int> avail;
 	int simplewin = Prior::GenerateMove(avail);
 	Board avail_list;

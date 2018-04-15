@@ -19,6 +19,7 @@ public:
 	bool add_noise = false;
 	bool use_transform = false;
 	float mcwin;
+	int stopflag;
 private:
 	int playouts;
 	NN* network;

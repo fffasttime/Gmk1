@@ -15,6 +15,11 @@ void BoardArray<int>::clear()
 {
 	memset(m, 0, sizeof(m));
 }
+template <>
+void BoardArray<int, 23>::clear()
+{
+	memset(m, 0, sizeof(m));
+}
 
 template <>
 int BoardArray<int>::count() const
@@ -42,6 +47,8 @@ void BoardArray<float>::clear()
 	for (int i = 0; i < BLSIZE; i++)
 		m[i] = 0;
 }
+
+template <>
 void BoardArray<int>::debug() const
 {
 	for (int i = 0; i<BSIZE; i++)
