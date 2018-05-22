@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdlib>
 #include <functional>
+#include <iomanip>
 #include <random>
 
 //sum of weight should be 1.0
@@ -61,6 +62,7 @@ MCTS::MCTS(Board &_board, int _col, NN *_network, int _playouts):boardhash(_boar
 	tr = new Node[(playouts+2)*BLSIZE];
 	Prior::setbyBoard(board);
 	Prior::setPlayer(nowcol);
+	starttime = clock();
 }
 
 void MCTS::make_move(int move)
@@ -95,7 +97,7 @@ void MCTS::createRoot()
 	expand(root, result.first ,result.second);
 	if (result.second.count() == 1) 
 		stopflag = true;
-	debug_s << "net win: " << result.first.v << '\n';
+	debug_s << "net win: " << vresultToWinrate(result.first.v) << "   ";
 	if (result.first.v > 0.99)
 		debug_s << "dec:win\n";
 	else if (result.first.v <-0.99)
@@ -132,10 +134,44 @@ int MCTS::selection(int cur)
 	return maxc;
 }
 
+bool MCTS::getTimeLimit(int played)
+{
+	if (cfg_timelim)
+	{
+		clock_t t1 = clock();
+		if (timeout_turn && t1 - starttime >= timeout_turn - 500)
+			return true;
+		if (played > 600)
+			for (auto it : tr[root].ch)
+				if ((float)tr[it].cnt / played > 0.95)
+					return true;
+		
+		if (played > 1800)
+			for (auto it : tr[root].ch)
+				if ((float)tr[it].cnt / played > 0.90)
+					return true;
+
+		if (played > 4000)
+			for (auto it : tr[root].ch)
+				if ((float)tr[it].cnt / played > 0.85)
+					return true;
+
+		if (timeout_left)
+		{ 
+			int leftpos = (BLSIZE - board.count()) / 2 + 1;
+			int ctrl_time = (float)timeout_left / leftpos * std::max((1.5 * (BLSIZE - board.count()) / 100.0),1.0);
+			if (t1 - starttime >= ctrl_time - 100)
+				return true;
+		}
+	}
+	return false;
+}
+
 void MCTS::solve(BoardWeight &result)
 {
 	debug_s << "step:" << board.count() + 1<<'\n';
 	createRoot();
+	int played;
 	for (int i = 0; i < playouts; i++)
 	{
 		if (stopflag && i>0) break;
@@ -168,9 +204,28 @@ void MCTS::solve(BoardWeight &result)
 		}
 		//simulation & backpropagation
 		simulation_back(cur);
+		if (getTimeLimit(i)) stopflag = true;
+		played = i;
 	}
 	mcwin = -tr[root].sumv / tr[root].cnt;
-	debug_s << "mc win: " << mcwin <<'\n' << "counter:" << counter << '\n';
+	debug_s << "mc win: " << vresultToWinrate(mcwin) << '\n' << "counter:" << counter << '\n'
+		<< "time: " << clock() - starttime << "  playout: " << played << '\n';
+	if (cfg_loglevel==2)
+	{
+		debug_s << board2showString(board, true);
+		vector<std::pair<int, int>> pvlist;
+		for (auto c : tr[root].ch)
+			if (tr[c].cnt)
+				pvlist.push_back({tr[c].cnt, c});
+		sort(pvlist.begin(), pvlist.end());
+		for (int i = 0; i < std::min(10, (int)pvlist.size());i++)
+		{
+			int v = pvlist[pvlist.size()-i-1].second;
+			debug_s << std::setw(3) << Coord(tr[v].move).format()
+				 << "  po:" << std::setw(5)<< tr[v].cnt
+				<< " " << vresultToWinrate(tr[v].sumv/tr[v].cnt) << '\n';
+		}
+	}
 	logRefrsh();
 	result.clear();
 	for (auto ch : tr[root].ch)

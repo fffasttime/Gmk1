@@ -31,3 +31,5 @@ struct RawOutput
 };
 
 std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, bool use_transform = true, int lastmove=-1);
+
+double vresultToWinrate(double v);

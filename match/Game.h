@@ -17,9 +17,9 @@ class Player
 private:
 	bp::ipstream pipe_get;
 	bp::opstream pipe_put;
-	string name;
 	bp::child *proc;
 public:
+	string name;
 	Player(string exec, string _name)
 	{
 		name = _name;

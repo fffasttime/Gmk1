@@ -12,9 +12,9 @@
 #include <boost/property_tree/ptree.hpp>  
 #include <boost/property_tree/json_parser.hpp>  
 namespace po = boost::program_options;
-string exepath;
+string exepath,logfilename;
 string network_file, output_file, str_mode, str_display;
-int playout, seed, selfplay_count, loglevel;
+int playout, seed, selfplay_count;
 float puct;
 
 #if 1
@@ -27,7 +27,7 @@ int run()
 
 	using std::cout;
 	using std::endl;
-	int mode = 0; //0 : selfplay, 1 : protrol
+	int mode = 0; //0 : selfplay, 1 : protrol, 2: black, 3: while, 4: users
 	if (str_mode[0] == 'p') mode = 1;
 	else if (str_mode[0] == 'b') mode = 2;
 	else if (str_mode[0] == 'w') mode = 3;
@@ -50,12 +50,12 @@ int run()
 		boost::filesystem::path p(network_file);
 		if (!p.is_complete()) network_file = exepath + "/" + network_file;
 	}
-	if (playout < 1 || playout>8192)
+	if (playout < 1 || playout>16384)
 	{
-		cout << "[Error] playout out of range!(1 ~ 8192)" << endl;
+		cout << "[Error] playout out of range!(1 ~ 16384)" << endl;
 		return 1;
 	}
-	if (selfplay_count < 1 || playout>16384)
+	if (selfplay_count < 1 || selfplay_count>16384)
 	{
 		cout << "[Error] selfplay_count out of range!(1 ~ 16384)" << endl;
 		return 1;
@@ -72,7 +72,7 @@ int run()
 	else if (mode == 1)
 	{
 		cfg_quiet = true;
-		if (loglevel) logOpen(exepath + "/Gmk0.log");
+		if (cfg_loglevel) logOpen(exepath + "/" + logfilename);
 		if (!boost::filesystem::exists(network_file))
 		{
 			cout << "ERROR could not find weight file " << network_file;
@@ -83,7 +83,7 @@ int run()
 	}
 	else if (mode == 2 || mode == 3)
 	{
-		if (loglevel) logOpen(exepath + "/Gmk0.log");
+		if (cfg_loglevel) logOpen(exepath + "/" + logfilename);
 		Player player1(network_file, playout, puct, false, true, 0.6f);
 		minit();
 		game.runGameUser(player1, mode - 1);
@@ -115,7 +115,8 @@ int getOptionCmdLine(int argc, char ** argv)
 		("selfplaycount,c", po::value(&selfplay_count)->default_value(2048), "count of selfplay games")
 		("puct", po::value(&puct)->default_value(1.4f), "uct policy constant")
 		("swap3", po::value(&cfg_swap3)->default_value(true), "use swap3")
-		("logs", po::value(&loglevel)->default_value(0), "use log")
+		("logs", po::value(&cfg_loglevel)->default_value(0), "log level, 0 for close")
+		("logfile", po::value(&logfilename)->default_value("Gmk1.log"), "log filename")
 		;
 	po::variables_map vm;
 	try
@@ -142,7 +143,7 @@ int getOptionJson()
 	try
 	{
 		boost::property_tree::ptree root;
-		boost::property_tree::read_json<boost::property_tree::ptree>(exepath + "/Gmk0.json", root);
+		boost::property_tree::read_json<boost::property_tree::ptree>(exepath + "/Gmk1.json", root);
 		network_file = root.get<string>("network", "weight.txt");
 		output_file = root.get<string>("output", "selfplaydata.txt");
 		str_display = root.get<string>("display", "move");
@@ -152,7 +153,8 @@ int getOptionJson()
 		selfplay_count = root.get<int>("selfplaycount", 2048);
 		puct = root.get<float>("puct", 1.4f);
 		cfg_swap3 = root.get<bool>("swap3", true);
-		loglevel = root.get<bool>("logs", 0);
+		cfg_loglevel = root.get<int>("logs", 0);
+		logfilename = root.get<string>("logfile", "Gmk1.log");
 	}
 	catch (std::exception &err)
 	{
@@ -174,7 +176,7 @@ int main(int argc, char **argv)
 	boost::filesystem::path p2(exepath);
 	exepath = p2.parent_path().string();
 	cfg_curr_dir = exepath + "/";
-	if (argc==1 && boost::filesystem::exists(exepath + "/Gmk0.json"))
+	if (argc==1 && boost::filesystem::exists(exepath + "/Gmk1.json"))
 	{
 		try
 		{

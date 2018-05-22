@@ -2,6 +2,10 @@
 
 int cfg_seed;
 bool cfg_swap3 = true;
+bool cfg_timelim = false;
+int timeout_turn;
+int timeout_left;
+int cfg_loglevel;
 
 stringstream debug_s;
 ofstream filelog;

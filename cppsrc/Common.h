@@ -16,6 +16,10 @@ using std::string;
 
 extern int cfg_seed;
 extern bool cfg_swap3;
+extern bool cfg_timelim;
+extern int timeout_turn;
+extern int timeout_left;
+extern int cfg_loglevel;
 
 extern stringstream debug_s;
 

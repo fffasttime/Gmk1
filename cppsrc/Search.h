@@ -20,6 +20,7 @@ public:
 	bool use_transform = false;
 	float mcwin;
 	int stopflag;
+	clock_t starttime;
 private:
 	int playouts;
 	NN* network;
@@ -54,6 +55,7 @@ private:
 	void addNoise(int cur, Val alpha, Val epsilon);
 	void createRoot();
 	int selection(int cur);
+	bool getTimeLimit(int played);
 
 public:
 	MCTS(Board &_board, int _col, NN *_network, int _playouts);

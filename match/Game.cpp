@@ -204,7 +204,7 @@ void Game::match(Player &player1, Player &player2)
 	std::ofstream fresult("match.txt", std::ios::app);
 	auto time = std::time(NULL);
 	fresult << "\n" << std::ctime(&time) << endl;
-	fresult << "    A  vs  B" << endl;
+	fresult << player1.name + "  vs  " + player2.name << endl;
 	fresult << "b " << w1 << "   " << match_count - w1 << endl;
 	fresult << "w " << w2 << "   " << match_count - w2 << endl;
 	fresult << (w1 + w2) * 100 / match_count / 2 << "%" << endl;

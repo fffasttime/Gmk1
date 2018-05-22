@@ -800,3 +800,8 @@ std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, boo
 	return {output,avail_list};
 #endif
 }
+
+double vresultToWinrate(double v) 
+{
+	return (int)((v + 1.0) * 5000.0+0.5)/100.0;
+}

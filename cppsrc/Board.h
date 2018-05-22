@@ -36,6 +36,7 @@ struct BoardArray
 typedef BoardArray<int> Board;
 typedef BoardArray<float> BoardWeight;
 
+string board2showString(Board &board, bool withaxis);
 extern Board transform_table[16];
 
 void initTransformTable();
@@ -64,4 +65,3 @@ struct BoardHasher
 
 const int cx[8] = { -1,-1,-1,0,0,1,1,1 };
 const int cy[8] = { -1,0,1,-1,1,-1,0,1 };
-

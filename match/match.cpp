@@ -10,7 +10,7 @@ namespace bp = boost::process;
 namespace po = boost::program_options;
 
 string exepath;
-string str_display, str_cmd1, str_cmd2;
+string str_display, str_cmd1, str_cmd2, str_name1, str_name2;
 int matchcount;
 
 int run()
@@ -31,8 +31,8 @@ int run()
 	boost::filesystem::path p2(str_cmd2);
 	if (!p1.is_complete()) str_cmd1 = exepath + "/" + str_cmd1;
 	if (!p2.is_complete()) str_cmd2 = exepath + "/" + str_cmd2;
-	Player player1(str_cmd1, "p1");
-	Player player2(str_cmd2, "p2");
+	Player player1(str_cmd1, str_name1);
+	Player player2(str_cmd2, str_name2);
 	minit();
 	game.match(player1, player2);
 	mexit();
@@ -53,6 +53,8 @@ int getOptionCmdLine(int argc, char ** argv)
 		("program2,P", po::value(&str_cmd2)->default_value("p2.exe"), "program 2")
 		("mathcount,c", po::value(&matchcount)->default_value(50), "count of match game")
 		("information,i", po::value(&cfg_show_information)->default_value(0), "0: close , 1: show correspondence detail")
+		("name1", po::value(&str_name1)->default_value("Player1"), "player1 name")
+		("name2", po::value(&str_name2)->default_value("Player2"), "player2 name")
 		;
 	po::variables_map vm;
 	try

@@ -1,5 +1,6 @@
 #include "Board.h"
 #include <random>
+#include <iomanip>
 
 bool inBorder(Coord a)
 {
@@ -61,6 +62,32 @@ void BoardArray<int>::debug() const
 		std::cout << '\n';
 	}
 	std::cout << '\n';
+}
+
+string board2showString(Board &board, bool withaxis) 
+{
+	stringstream ss;
+	if (withaxis)
+	{
+		ss << "  ";
+		for (int i = 0; i < BSIZE; i++)
+			ss << " " << (char)('A' + i);
+		ss << std::endl;
+	}
+	for (int i = 0; i < BSIZE; i++) 
+	{
+		if (withaxis)
+			ss << std::setw(2) <<i + 1 << ' ';
+		for (int j = 0; j < BSIZE; j++)
+			if (board(i, j) == 0)
+				ss << "¡¤";
+			else if (board(i, j) == 1)
+				ss << "¡ñ";
+			else
+				ss << "¡ð";
+		ss << std::endl;
+	}
+	return ss.str();
 }
 
 Board transform_table[16];

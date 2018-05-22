@@ -4,6 +4,7 @@
 #include "Evaluation.h"
 #include <vector>
 #include <algorithm>
+#include <ctime>
 #include "GameData.h"
 using std::vector;
 
@@ -275,6 +276,8 @@ void Game::runGomocup(Player &player)
 			else
 			{
 				reset();
+				auto time = std::time(NULL);
+				debug_s<<"Engine loaded, local time:"<<std::ctime(&time)<<'\n';
 				cout << "OK" << endl;
 			}
 		}
@@ -333,7 +336,8 @@ void Game::runGomocup(Player &player)
 
 			if (key == "TIMEOUT_TURN") {
 				cin >> value;
-				//TODO
+				timeout_turn = value;
+				cfg_timelim = true;
 			}
 			else if (key == "TIMEOUT_MATCH") {
 				cin >> value;
@@ -341,6 +345,8 @@ void Game::runGomocup(Player &player)
 			}
 			else if (key == "TIME_LEFT") {
 				cin >> value;
+				timeout_left = value;
+				cfg_timelim = true;
 				//TODO
 			}
 			else if (key == "MAX_MEMORY") {
