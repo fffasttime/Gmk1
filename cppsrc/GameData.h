@@ -42,18 +42,20 @@ struct EposideData
 	}
 	void writeByte(std::ofstream &out)
 	{
-		out << (ubyte)stepcount << (ubyte)z;
-		for (auto move : moves)
-			out << (ubyte)move;
+		out.write((char*)&stepcount, 4);
+		out.write((char*)&z, 4);
+		for (auto move : moves) {
+			out.write((char *)&move, 4);
+		}
 	}
 	void readByte(std::ifstream &in)
 	{
-		ubyte u1, u2;
-		in >> u1 >> u2;
-		stepcount = u1; z = u2;
+		in.read((char*)&stepcount, 4);
+		in.read((char*)&z, 4);
 		for (int i = 0; i < stepcount; i++)
 		{
-			ubyte t;
+			int t;
+			in.read((char *)&t, 4);
 			moves.push_back(t);
 		}
 	}
@@ -125,27 +127,30 @@ struct EposideTrainingData
 	}
 	void writeByte(std::ofstream &out)
 	{
-		out << (ubyte)stepcount << (ubyte)z;
+		out.write((char*)&stepcount, 4);
+		out.write((char*)&z, 4);
 		for (int i = 0; i < stepcount; i++)
 		{
-			out << (ubyte)moves[i]; 
-			out << winrate[i];
+			out.write((char*)&moves[i], 4);
+			out.write((char*)&winrate[i], 4);
 			for (int j = 0; j < POLICY_MAX_EXPANDS; j++)
-				out << policy[i][j];
+				out.write((char*)&policy[i][j], 4);
 		}
 	}
 	void readByte(std::ifstream &in)
 	{
-		ubyte u1, u2;
-		in >> u1 >> u2;
-		stepcount = u1; z = u2;
+		in.read((char*)&stepcount, 4);
+		in.read((char*)&z, 4);
 		for (int i = 0; i < stepcount; i++)
 		{
-			ubyte t;
-			moves.push_back(t);
+			int move; float rate;
+			in.read((char*)&moves[i], 4);
+			in.read((char*)&winrate[i], 4);
+			moves.push_back(move);
+			winrate.push_back(rate);
 			StepPolicy tp;
 			for (int j = 0; j < POLICY_MAX_EXPANDS; j++)
-				in>>tp[j];
+				in.read((char*)&tp[j], 4);
 			policy.push_back(tp);
 		}
 	}
@@ -181,17 +186,15 @@ struct DataSeries
 	}
 	void writeByte(std::string filename)
 	{
-		std::ofstream out(filename, ios::byte);
-		out << (ubyte)count;
+		std::ofstream out(filename, ios::binary);
+		out.write((char*)&count, 4);
 		for (auto &data : datas)
 			data.writeByte(out);
 	}
 	void readByte(std::string filename)
 	{
-		std::ifstream in(filename, ios::byte);
-		ubyte u1;
-		in >> u1;
-		count = u1;
+		std::ifstream in(filename, ios::binary);
+		in.read((char *)&count,4);
 		if (!datas.empty()) datas.clear();
 		for (int i = 0; i < count; i++)
 		{

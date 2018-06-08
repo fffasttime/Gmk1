@@ -161,8 +161,8 @@ void Game::runGame_selfplay(Player &player)
 	if (gamestep == BLSIZE) winner = 0;
 	printWinner(winner);
 	EposideTrainingData data(history, policy, winrate , winner);
-	ofstream out(output_file, std::ios::app);
-	data.writeString(out);
+	ofstream out(output_file, std::ios::app|std::ios::binary);
+	data.writeByte(out);
 }
 
 void Game::runGameUser(Player &player1, int col)

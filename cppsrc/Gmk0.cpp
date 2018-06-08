@@ -108,7 +108,7 @@ int getOptionCmdLine(int argc, char ** argv)
 		("help,h", "produce help message")
 		("mode,m", po::value(&str_mode)->default_value("selfplay"), "p[rotrol], s[elfplay]")
 		("network,n", po::value(&network_file)->default_value("weight.txt"), "network file")
-		("output,o", po::value(&output_file)->default_value("selfplaydata.txt"), "selfplay output file")
+		("output,o", po::value(&output_file)->default_value("selfplaydata.bin"), "selfplay output file")
 		("display,d", po::value(&str_display)->default_value("move"), "m[ove]: show move, b[oard]: show board, n[o]: close")
 		("playout,p", po::value(&playout)->default_value(400), "count of playouts")
 		("seed,s", po::value(&seed)->default_value(time(NULL)), "random seed")
@@ -145,7 +145,7 @@ int getOptionJson()
 		boost::property_tree::ptree root;
 		boost::property_tree::read_json<boost::property_tree::ptree>(exepath + "/Gmk1.json", root);
 		network_file = root.get<string>("network", "weight.txt");
-		output_file = root.get<string>("output", "selfplaydata.txt");
+		output_file = root.get<string>("output", "selfplaydata.bin");
 		str_display = root.get<string>("display", "move");
 		str_mode = root.get<string>("mode", "selfplay");
 		playout = root.get<int>("playout", 400);
