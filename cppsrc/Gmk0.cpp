@@ -63,7 +63,7 @@ int run()
 	game.selfplay_count = selfplay_count;
 	if (mode == 0)
 	{
-		Player player1(network_file, playout, puct, true, true, 1.0f, 0.6f, 12);
+		Player player1(network_file, playout, puct, true, true, 0.8f, 0.6f, 12);
 		cout << "selfplay data will be saved to " << output_file << endl;
 		minit();
 		game.selfplay(player1);

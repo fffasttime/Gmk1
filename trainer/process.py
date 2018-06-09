@@ -12,7 +12,7 @@ path=os.getcwd()
 def run_proc(count):
     print("starting process %d"%(count))
     string_cmd=\
-        "p1\\cppGmk.exe -c %d --puct 1.6 --seed %d -p 500 -o selfplaydata%d.txt "%(game_num//proc_num, random.randint(0,100000), count)
+        "p1\\cppGmk.exe -c %d --puct 1.6 --seed %d -p 400 -o selfplaydata%d.bin "%(game_num//proc_num, random.randint(0,100000), count)
     print(string_cmd)
     os.system(string_cmd + " >p1\\splog%d.txt 2>nul"%(count))
 
@@ -22,7 +22,7 @@ def multi_selfplay():
         raise FileNotFoundError
     os.system("copy %s\\data\\I%d.txt %s\\p1\\weight.txt"%(path,it_num-1,path))
     for i in range(proc_num):
-        if os.path.exists("p1/selfplaydata%d.txt"%(i)):
+        if os.path.exists("p1/selfplaydata%d.bin"%(i)):
             pass
             #raise FileExistsError
     
@@ -35,7 +35,7 @@ def multi_selfplay():
     if not os.path.exists("spdata/I%d"%it_num):
         os.mkdir("spdata/I%d"%it_num)
     for i in range(proc_num):
-        os.system("move %s\\p1\\selfplaydata%d.txt %s\\spdata\\I%d\\selfplaydata%d.txt"%(path,i,path,it_num,i))
+        os.system("move %s\\p1\\selfplaydata%d.bin %s\\spdata\\I%d\\selfplaydata%d.bin"%(path,i,path,it_num,i))
 
 '''   
 def dataremake():
@@ -64,8 +64,10 @@ def train():
             file.write('../spdata/I%d/'%(it_num-2)+p+'\n')
         for p in os.listdir("spdata/I%d"%(it_num-3)):
             file.write('../spdata/I%d/'%(it_num-3)+p+'\n')
+        for p in os.listdir("spdata/I%d"%(it_num-4)):
+            file.write('../spdata/I%d/'%(it_num-4)+p+'\n')
     os.chdir("data/")
-    os.system("python Trainer.py I%d I%d"%(it_num, it_num-1))
+    os.system("python Trainer.py I%d I%d >>trainer.log"%(it_num, it_num-1))
     os.chdir("..")
 
 def run_proc2(count):
@@ -84,9 +86,9 @@ def match():
         p.join()
 
 def main():
-    #multi_selfplay()
+    multi_selfplay()
     train()
-    #match()
+    match()
 
 if __name__=="__main__":
     main()

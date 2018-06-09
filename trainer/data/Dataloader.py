@@ -103,11 +103,12 @@ class GmkData:
         values=calcVal(steps,val0,data[3].copy())
         moves=data[2]
         for i in range(steps):
-            self.testdata[0][self.testidx][0]=(board==nowcol)
-            self.testdata[0][self.testidx][1]=(board==nowcol%2+1)
-            self.testdata[1][self.testidx]=data[4][i]
-            self.testdata[2][self.testidx]=values[i]
-            self.testidx+=1
+            if (moves[i]!=BLSIZE):
+                self.testdata[0][self.testidx][0]=(board==nowcol)
+                self.testdata[0][self.testidx][1]=(board==nowcol%2+1)
+                self.testdata[1][self.testidx]=data[4][i]
+                self.testdata[2][self.testidx]=values[i]
+                self.testidx+=1
             if (moves[i]==BLSIZE):
                 board=swap3(board)
             else:
@@ -124,18 +125,19 @@ class GmkData:
         values=calcVal(steps,val0,data[3].copy())
         moves=data[2]
         for i in range(steps):
-            if RANDOM_ROTATE:
-                r=random.randint(0,7)
-                board_r=boardTransform(r,board)
-                policy_r=boardTransform(r,data[4][i])
-            else:
-                board_r=board
-                policy_r=data[4][i]
-            self.data[0][self.bufferidx][0]=(board_r==nowcol)
-            self.data[0][self.bufferidx][1]=(board_r==nowcol%2+1)
-            self.data[1][self.bufferidx]=policy_r
-            self.data[2][self.bufferidx]=values[i]
-            self.bufferidx+=1
+            if (moves[i]!=BLSIZE):
+                if RANDOM_ROTATE:
+                    r=random.randint(0,7)
+                    board_r=boardTransform(r,board)
+                    policy_r=boardTransform(r,data[4][i])
+                else:
+                    board_r=board
+                    policy_r=data[4][i]
+                self.data[0][self.bufferidx][0]=(board_r==nowcol)
+                self.data[0][self.bufferidx][1]=(board_r==nowcol%2+1)
+                self.data[1][self.bufferidx]=policy_r
+                self.data[2][self.bufferidx]=values[i]
+                self.bufferidx+=1
             if (moves[i]==BLSIZE):
                 board=swap3(board)
             else:
@@ -161,7 +163,7 @@ class GmkData:
             if self.gameindex==len(self.rawdata):
                 self.gameindex=0
         sf=np.array(range(BUFFER_SIZE+BLSIZE))
-        np.random.shuffle(sf)
+        np.random.shuffle(sf[:self.bufferidx])
         self.data=(self.data[0][sf],self.data[1][sf],self.data[2][sf])
         print("[Info] Loaded to buffer")
     

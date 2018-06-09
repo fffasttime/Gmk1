@@ -137,7 +137,7 @@ class TFProcess:
             save_path = self.saver.save(self.session, path, global_step=steps)
             print("Model saved in file: {}".format(save_path))
 
-        if steps % settings.STEPS == 0:
+        if (steps-self.startsteps) % settings.STEPS == 0:
             return False
         return True
     
@@ -271,6 +271,8 @@ class TFProcess:
         else:
             self.init = tf.global_variables_initializer()
             self.session.run(self.init)
+            
+        self.startsteps=tf.train.global_step(self.session, self.global_step)
     
     def restore(self, file):
         print("Restoring from {0}".format(file))

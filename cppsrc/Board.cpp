@@ -79,9 +79,9 @@ string board2showString(Board &board, bool withaxis)
 		if (withaxis)
 			ss << std::setw(2) <<i + 1 << ' ';
 		for (int j = 0; j < BSIZE; j++)
-			if (board(i, j) == 0)
+			if (board(j, i) == 0)
 				ss << "¡¤";
-			else if (board(i, j) == 1)
+			else if (board(j, i) == 1)
 				ss << "¡ñ";
 			else
 				ss << "¡ð";
