@@ -45,8 +45,7 @@ int BoardArray<int>::countv(int col) const
 template <>
 void BoardArray<float>::clear()
 {
-	for (int i = 0; i < BLSIZE; i++)
-		m[i] = 0;
+	memset(m, 0, sizeof(m));
 }
 
 template <>

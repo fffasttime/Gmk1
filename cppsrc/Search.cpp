@@ -61,6 +61,8 @@ MCTS::MCTS(Board &_board, int _col, NN *_network, int _playouts):boardhash(_boar
 	playouts = _playouts;
 	tr = new Node[(playouts+2)*BLSIZE];
 	chlist = new Board[playouts + 2];
+	ravelist = new BoardWeight[playouts + 2];
+	raveclist = new Board[playouts + 2];
 	Prior::setbyBoard(board);
 	Prior::setPlayer(nowcol);
 	starttime = clock();
@@ -126,13 +128,16 @@ int MCTS::selection(int cur)
 		Val father_val = (-tr[cur].sumv / tr[cur].cnt + 1.0f) / 1.1f - 1.0f;
 		static const Val father_decay = 0.5f;
 		Val frac1 = powf(father_decay, tr[ch].cnt);
-
-		if (tr[ch].is_end) frac1 = 0;
+		Val rave_cnt = (Val)(*tr[cur].cnt_rave)[i];
+		Val rave_win = (*tr[cur].sum_rave)[i] / rave_cnt;
+		//Val rave_beta = rave_cnt /(rave_cnt + tr[ch].cnt + 2*rave_cnt*tr[ch].cnt);
+		Val rave_beta = 0.0f;
+		if (tr[ch].is_end) frac1 = 0, rave_beta = 0;
 
 		if (tr[ch].cnt == 0)
 			ucb = father_val + var_ele;
 		else
-			ucb = frac1 * father_val + (1 - frac1)*tr[ch].sumv / tr[ch].cnt + var_ele;
+			ucb = rave_beta * rave_win+(1-rave_beta)*(frac1 * father_val + (1 - frac1)*tr[ch].sumv / tr[ch].cnt) + var_ele;
 		if (ucb > maxv)
 		{
 			maxv = ucb;
@@ -249,15 +254,21 @@ void MCTS::expand(int cur,RawOutput &output, Board &avail)
 	//board.debug();
 	//std::cout<<"netwin:"<<output.v<<'\n';
 	tr[cur].ch = &chlist[chlistcnt];
+	tr[cur].sum_rave = &ravelist[chlistcnt];
+	tr[cur].cnt_rave = &raveclist[chlistcnt];
 	(*tr[cur].ch).clear();
+	(*tr[cur].sum_rave).clear();
+	(*tr[cur].cnt_rave).clear();
 	chlistcnt++;
 	for (int i = 0; i < BLSIZE; i++)
 		if (avail[i]) //for valid
 		{
 			(*tr[cur].ch)[i]=trcnt;
-			tr[trcnt].sumv = tr[trcnt].sum_rave = 0.0f;
+			tr[trcnt].sumv = 0.0f;
 			tr[trcnt].ch = nullptr;
-			tr[trcnt].cnt = tr[trcnt].cnt_rave = 0;
+			tr[trcnt].sum_rave = nullptr;
+			tr[trcnt].cnt_rave = nullptr;
+			tr[trcnt].cnt = 0;
 			tr[trcnt].policy = output.p[i];
 			tr[trcnt].move = i;
 			tr[trcnt].fa = cur;
@@ -290,6 +301,16 @@ void MCTS::simulation_back(int cur)
 		val = -fabs(val);
 	
 backprop:
+	int tcur = cur;
+	int move = tr[cur].move;
+	while (tcur > 0)
+	{
+		tcur = tr[tcur].fa;
+		(*tr[tcur].sum_rave)[move] += val;
+		(*tr[tcur].cnt_rave)[move] ++;
+		tcur = tr[tcur].fa;
+	}
+
 	tr[cur].sumv += val;
 	tr[cur].cnt++;
 
