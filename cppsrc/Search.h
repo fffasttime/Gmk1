@@ -26,10 +26,11 @@ private:
 	NN* network;
 	struct Node
 	{
-		Val sumv,policy;
-		int cnt; int fa;
-		vector<int> ch;
+		Val sumv,policy, sum_rave;
+		int cnt,cnt_rave; int fa;
 		int move;
+		bool is_end;
+		Board *ch;
 		void print()
 		{
 			//fout << "rate:" << score / cnt << " cnt:" << cnt << " " << Coord(p) << " ch:";
@@ -38,10 +39,11 @@ private:
 		}
 	};
 	Node *tr;
+	Board *chlist;
 	std::map<unsigned long long, int> hash_table;
 	BoardHasher boardhash;
 	const int root = 0;
-	int trcnt = 1, viscnt = 0;
+	int trcnt, chlistcnt, viscnt = 0;
 	Board board;
 	int nowcol;
 	int counter = 0;
@@ -64,6 +66,7 @@ public:
 	~MCTS()
 	{
 		delete[] tr;
+		delete[] chlist;
 	}
 };
 

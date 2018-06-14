@@ -46,10 +46,10 @@ void MCTS::addNoise(int cur, Val epsilon, Val alpha)
 		sum += dirichlet[i];
 	}
 
-	for (size_t i = 0; i < tr[cur].ch.size(); i++)
+	for (int i = 0; i < BLSIZE; i++)
 	{
-		int ch = tr[cur].ch[i];
-		tr[ch].policy = (1-epsilon) * tr[ch].policy + epsilon * dirichlet[i] / sum;
+		int ch = (*tr[cur].ch)[i];
+		if (ch) tr[ch].policy = (1-epsilon) * tr[ch].policy + epsilon * dirichlet[i] / sum;
 	}
 }
 
@@ -60,6 +60,7 @@ MCTS::MCTS(Board &_board, int _col, NN *_network, int _playouts):boardhash(_boar
 	network = _network;
 	playouts = _playouts;
 	tr = new Node[(playouts+2)*BLSIZE];
+	chlist = new Board[playouts + 2];
 	Prior::setbyBoard(board);
 	Prior::setPlayer(nowcol);
 	starttime = clock();
@@ -87,7 +88,7 @@ void MCTS::unmake_move(int move)
 
 void MCTS::createRoot()
 {
-	trcnt = 1;
+	trcnt = 1; chlistcnt = 0;
 	stopflag = false;
 	tr[root].cnt = 1;
 	tr[root].fa = -1;
@@ -107,31 +108,38 @@ void MCTS::createRoot()
 		addNoise(root, 0.25f, 0.1f);
 }
 
-//LZ's selection, weaker than current
+//UCT-RAVE selection, use father hueristic
 int MCTS::selection(int cur)
 {
-	if (tr[cur].ch.size() == 0)
+	if (!tr[cur].ch)
 		return cur;
-	auto sum_policy = 0.0f;
-	for (auto &ch : tr[cur].ch)
-		if (tr[ch].cnt)
-			sum_policy += tr[ch].policy;
-	
-	auto numerator = sqrtf((Val)tr[cur].ch.size());
-	auto fpu = 0.3f * sqrtf(sum_policy);
-	int maxc = 0; Val maxv = -FLOAT_INF;
-
-	for (auto &ch : tr[cur].ch)
+	int maxp = 0;
+	Val maxv = -FLOAT_INF;
+	for (int i=0;i<BLSIZE;i++)
 	{
-		auto winrate = tr[ch].cnt == 0 ? (-tr[cur].sumv / tr[cur].cnt) - fpu : tr[ch].sumv / tr[ch].cnt;
-		auto ucb = winrate + UCBC * tr[ch].policy * numerator / (1.0f + tr[ch].cnt);
+		int ch = (*tr[cur].ch)[i];
+		if (!ch) continue;
+		Val ucb;
+		Val var_ele = UCBC*tr[ch].policy*sqrtf((Val)tr[cur].cnt) / (1 + tr[ch].cnt);
+
+		//rescale range
+		Val father_val = (-tr[cur].sumv / tr[cur].cnt + 1.0f) / 1.1f - 1.0f;
+		static const Val father_decay = 0.5f;
+		Val frac1 = powf(father_decay, tr[ch].cnt);
+
+		if (tr[ch].is_end) frac1 = 0;
+
+		if (tr[ch].cnt == 0)
+			ucb = father_val + var_ele;
+		else
+			ucb = frac1 * father_val + (1 - frac1)*tr[ch].sumv / tr[ch].cnt + var_ele;
 		if (ucb > maxv)
 		{
 			maxv = ucb;
-			maxc = ch;
+			maxp = ch;
 		}
 	}
-	return maxc;
+	return maxp;
 }
 
 bool MCTS::getTimeLimit(int played)
@@ -141,20 +149,24 @@ bool MCTS::getTimeLimit(int played)
 		clock_t t1 = clock();
 		if (timeout_turn && t1 - starttime >= timeout_turn - 500)
 			return true;
+		Val maxrate = 0;
+		for (int i = 0; i < BLSIZE; i++)
+		{
+			int ch = (*tr[root].ch)[i];
+			if (ch) maxrate = std::max(maxrate, (float)tr[ch].cnt / played);
+		}
+
 		if (played > 600)
-			for (auto it : tr[root].ch)
-				if ((float)tr[it].cnt / played > 0.95)
+			if (maxrate > 0.95)
 					return true;
 		
 		if (played > 1800)
-			for (auto it : tr[root].ch)
-				if ((float)tr[it].cnt / played > 0.90)
-					return true;
+			if (maxrate > 0.90)
+				return true;
 
 		if (played > 4000)
-			for (auto it : tr[root].ch)
-				if ((float)tr[it].cnt / played > 0.85)
-					return true;
+			if (maxrate > 0.85)
+				return true;
 
 		if (timeout_left)
 		{ 
@@ -178,29 +190,14 @@ void MCTS::solve(BoardWeight &result)
 		int cur = root;
 		while (1)
 		{
-			Val maxv = -FLOAT_INF;
-			//int maxp = selection(cur);
-			
-			int maxp = cur;
-			for (auto &ch : tr[cur].ch)
-			{
-				Val ucb;
-				if (tr[ch].cnt == 0)
-					ucb = (-tr[cur].sumv / tr[cur].cnt + 1.0f)/1.1f -1.0f + UCBC * tr[ch].policy*sqrtf((Val)tr[cur].cnt);
-				else
-					ucb = tr[ch].sumv / tr[ch].cnt + UCBC*tr[ch].policy*sqrtf((Val)tr[cur].cnt) / (1 + tr[ch].cnt);
-				if (ucb > maxv)
-				{
-					maxv = ucb;
-					maxp = ch;
-				}
-			}
+			int maxp = selection(cur);
 			
 			//leaf node
 			if (maxp == cur) break;
 			//forward search
 			cur = maxp;
 			make_move(tr[cur].move);
+			//if (tr[cur].is_end) break;
 		}
 		//simulation & backpropagation
 		simulation_back(cur);
@@ -214,9 +211,12 @@ void MCTS::solve(BoardWeight &result)
 	{
 		debug_s << board2showString(board, true);
 		vector<std::pair<int, int>> pvlist;
-		for (auto c : tr[root].ch)
-			if (tr[c].cnt)
-				pvlist.push_back({tr[c].cnt, c});
+		for (int i = 0; i < BLSIZE; i++)
+		{
+			int ch = (*tr[root].ch)[i];
+			if (ch && tr[ch].cnt)
+				pvlist.push_back({ tr[ch].cnt, ch });
+		}
 		sort(pvlist.begin(), pvlist.end());
 		for (int i = 0; i < std::min(10, (int)pvlist.size());i++)
 		{
@@ -228,9 +228,10 @@ void MCTS::solve(BoardWeight &result)
 	}
 	logRefrsh();
 	result.clear();
-	for (auto ch : tr[root].ch)
+	for (int i = 0; i < BLSIZE; i++)
 	{
-		result[tr[ch].move] = (Val)tr[ch].cnt;
+		int ch = (*tr[root].ch)[i];
+		if (ch) result[i] = (Val)tr[ch].cnt;
 		//std::cout << tr[ch].move << ' ' << tr[ch].cnt << ' ' << tr[ch].sumv / tr[ch].cnt << '\n';
 	}
 }
@@ -247,17 +248,20 @@ void MCTS::expand(int cur,RawOutput &output, Board &avail)
 {
 	//board.debug();
 	//std::cout<<"netwin:"<<output.v<<'\n';
-	if (!tr[cur].ch.empty())
-		tr[cur].ch.clear();
+	tr[cur].ch = &chlist[chlistcnt];
+	(*tr[cur].ch).clear();
+	chlistcnt++;
 	for (int i = 0; i < BLSIZE; i++)
 		if (avail[i]) //for valid
 		{
-			tr[cur].ch.push_back(trcnt);
-			tr[trcnt].sumv = 0;
-			tr[trcnt].cnt = 0;
+			(*tr[cur].ch)[i]=trcnt;
+			tr[trcnt].sumv = tr[trcnt].sum_rave = 0.0f;
+			tr[trcnt].ch = nullptr;
+			tr[trcnt].cnt = tr[trcnt].cnt_rave = 0;
 			tr[trcnt].policy = output.p[i];
 			tr[trcnt].move = i;
 			tr[trcnt].fa = cur;
+			tr[trcnt].is_end = false;
 			trcnt++;
 		}
 }
@@ -270,24 +274,25 @@ void MCTS::simulation_back(int cur)
 		auto result = getEvaluation(board, nowcol, network, use_transform, tr[cur].move);
 		val = -result.first.v;
 		expand(cur, result.first, result.second);
-		auto &it = hash_table.find(boardhash());
-		if (it != hash_table.end())
-			counter++;
-		else
-			hash_table[boardhash()] = cur;
+		if (val<-0.99 || val>0.99) tr[cur].is_end = true;
+		//auto &it = hash_table.find(boardhash());
+		//if (it != hash_table.end()) counter++;
+		//else hash_table[boardhash()] = cur;
 	}
 	else
 	{
 		val = 1; 
 		if (board.count() == BLSIZE)
 			val = 0;
+		tr[cur].is_end = true;
 	}
 	if (cfg_swap3 && board.count() == 3 && board.countv(2) == 1 && tr[cur].fa>0) //if swap, player choice max rate point
 		val = -fabs(val);
 	
+backprop:
 	tr[cur].sumv += val;
 	tr[cur].cnt++;
-	//back
+
 	while (cur > 0)
 	{
 		unmake_move(tr[cur].move);
