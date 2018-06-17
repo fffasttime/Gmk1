@@ -5,7 +5,7 @@ import random
 import time
 
 it_num=int(sys.argv[1])
-game_num=1600
+game_num=2400
 proc_num=4
 path=os.getcwd()
 
@@ -62,10 +62,6 @@ def train():
             file.write('../spdata/I%d/'%(it_num-1)+p+'\n')
         for p in os.listdir("spdata/I%d"%(it_num-2)):
             file.write('../spdata/I%d/'%(it_num-2)+p+'\n')
-        for p in os.listdir("spdata/I%d"%(it_num-3)):
-            file.write('../spdata/I%d/'%(it_num-3)+p+'\n')
-        for p in os.listdir("spdata/I%d"%(it_num-4)):
-            file.write('../spdata/I%d/'%(it_num-4)+p+'\n')
     os.chdir("data/")
     os.system("python Trainer.py I%d I%d >>trainer.log"%(it_num, it_num-1))
     os.chdir("..")

@@ -393,17 +393,14 @@ namespace Prior
 		}
 		if (cand[0].val == 2000)
 		{
-			int i;
-			for (i = moves.size(); i < candCount; ++i)
-				if (IsType(&cell[cand[i].p], opp, block4) || IsType(&cell[cand[i].p], opp, flex4))
-					break;
-			if (i == candCount)
-			{
-				moves.push_back(cand[0].p);
-				return 1;
-			}
+			int v = cand[0].p;
+			for (auto j : Range4)
+				if (cell[j + v].piece == Empty && (IsType(&cell[j + v], opp, flex4) || IsType(&cell[j + v], opp, block4))) //no more link-5
+					goto next;
+			moves.push_back(cand[0].p);
+			return 1;
 		}
-
+		next:
 		if (cand[0].val == 1200 || cand[0].val == 1000)
 		{
 			moves.push_back(cand[0].p);

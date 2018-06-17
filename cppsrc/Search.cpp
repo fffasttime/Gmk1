@@ -130,14 +130,22 @@ int MCTS::selection(int cur)
 		Val frac1 = powf(father_decay, tr[ch].cnt);
 		Val rave_cnt = (Val)(*tr[cur].cnt_rave)[i];
 		Val rave_win = (*tr[cur].sum_rave)[i] / rave_cnt;
-		//Val rave_beta = rave_cnt /(rave_cnt + tr[ch].cnt + 2*rave_cnt*tr[ch].cnt);
+		//Val rave_beta = rave_cnt /(rave_cnt + tr[ch].cnt + 4*rave_cnt*tr[ch].cnt);
 		Val rave_beta = 0.0f;
 		if (tr[ch].is_end) frac1 = 0, rave_beta = 0;
 
 		if (tr[ch].cnt == 0)
-			ucb = father_val + var_ele;
+		{ 
+			if (rave_cnt > 0.1f)
+				ucb = rave_beta * rave_win + (1 - rave_beta)*(frac1 * father_val) + var_ele;
+			else
+				ucb = father_val + var_ele;
+		}
 		else
-			ucb = rave_beta * rave_win+(1-rave_beta)*(frac1 * father_val + (1 - frac1)*tr[ch].sumv / tr[ch].cnt) + var_ele;
+		{
+			rave_beta /= 2;
+			ucb = rave_beta * rave_win+(1-rave_beta)*(frac1 * father_val + (1 - frac1)*tr[ch].sumv / tr[ch].cnt) + var_ele; 
+		}
 		if (ucb > maxv)
 		{
 			maxv = ucb;
@@ -162,16 +170,19 @@ bool MCTS::getTimeLimit(int played)
 		}
 
 		if (played > 600)
-			if (maxrate > 0.95)
+			if (maxrate > 0.9)
 					return true;
 		
 		if (played > 1800)
-			if (maxrate > 0.90)
+			if (maxrate > 0.8)
 				return true;
 
 		if (played > 4000)
-			if (maxrate > 0.85)
+			if (maxrate > 0.7)
 				return true;
+
+		if (board.count() > 102 && played > 800 && fabs(tr[root].sumv / tr[root].cnt) < 0.05)
+			return true;
 
 		if (timeout_left)
 		{ 

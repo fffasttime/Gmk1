@@ -238,7 +238,7 @@ class TFProcess:
         reg_term = \
             tf.contrib.layers.apply_regularization(regularizer, reg_variables)
 
-        loss = 1.0 * self.policy_loss + 0.25 * self.mse_loss + reg_term
+        loss = 1.0 * self.policy_loss + 0.2 * self.mse_loss + reg_term
 
         opt_op = tf.train.MomentumOptimizer(
             learning_rate=settings.LR, momentum=0.9, use_nesterov=True)
