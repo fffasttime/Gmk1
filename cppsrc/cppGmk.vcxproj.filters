@@ -96,6 +96,12 @@
     <ClInclude Include="Common.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="PriorGomoku.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="PriorRenju.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Board.cpp">
@@ -150,6 +156,12 @@
       <Filter>NN</Filter>
     </ClCompile>
     <ClCompile Include="Common.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PriorGomoku.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="PriorRenju.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

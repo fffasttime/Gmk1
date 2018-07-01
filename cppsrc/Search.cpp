@@ -1,5 +1,6 @@
 #include "Search.h"
 #include "Game.h"
+#include "PriorGomoku.h"
 #include <algorithm>
 #include <cstdlib>
 #include <functional>

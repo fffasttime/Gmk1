@@ -14,6 +14,8 @@ using std::string;
 #define BLSIZE (BSIZE * BSIZE)
 #define FLOAT_INF (1e10)
 
+#define Prior PriorRenju
+
 extern int cfg_seed;
 extern bool cfg_swap3;
 extern bool cfg_timelim;

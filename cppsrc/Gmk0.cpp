@@ -4,6 +4,7 @@
 #include "ConsolePrt.h"
 #include "Search.h"
 #include "Common.h"
+#include "PriorGomoku.h"
 #include "Evaluation.h"
 #include "NN/nn_cpp.h" 
 #include <boost/program_options.hpp>
