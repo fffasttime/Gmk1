@@ -78,8 +78,10 @@ void print(Board &gameboard)
 				printf("©à");
 			else if (gameboard(i, j) == C_W)
 				printf("¡ð");
-			else
+			else if (gameboard(i, j) == C_B)
 				printf("¡ñ");
+			else
+				printf("¡õ");
 		}/*
 		for (int j = 0; j<BSIZE; j++)
 		{

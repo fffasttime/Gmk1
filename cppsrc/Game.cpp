@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <ctime>
 #include "GameData.h"
+#include "PriorRenju.h"
 using std::vector;
 
 /*
@@ -196,10 +197,16 @@ void Game::runGameUser2()
 		Coord c;
 		c = getPlayerPos(gameboard);
 		make_move(c);
+		Prior::setbyBoard(gameboard);
+		if (nowcol == C_B)
+			for (int i = 0; i < BLSIZE; i++)
+				if (gameboard[i] == C_E && Prior::cell(i / BSIZE + 4, i%BSIZE + 4).forbidden)
+					gameboard[i] = 3;
 		print(gameboard);
-		//Prior::reset();
-		//Prior::setbyBoard(gameboard);
-		//Prior::debugPrint();
+		if (nowcol == C_B)
+			for (int i = 0; i < BLSIZE; i++)
+				if (gameboard[i] == 3)
+					gameboard[i] = 0;
 		if (judgeWin(gameboard))
 			break;
 		gamestep++;

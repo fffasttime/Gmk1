@@ -14,7 +14,15 @@ using std::string;
 #define BLSIZE (BSIZE * BSIZE)
 #define FLOAT_INF (1e10)
 
+#define RULE_RENJU
+//#define RULE_GOMOKU
+
+#ifdef RULE_RENJU
 #define Prior PriorRenju
+#endif
+#ifdef RULE_GOMOKU
+#define Prior PriorGomoku
+#endif
 
 extern int cfg_seed;
 extern bool cfg_swap3;

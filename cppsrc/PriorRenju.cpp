@@ -1,4 +1,4 @@
-#include "PriorGomoku.h"
+#include "PriorRenju.h"
 #include <algorithm>
 
 namespace PriorRenju
@@ -17,29 +17,10 @@ namespace PriorRenju
 	int pval[8][8][8][8];
 	int typeTable[10][6][6][3];
 	int patternTable[65536][2];
-	enum Pieces { Black = 0, White = 1, Empty = 2, Outside = 3 };
-	struct Cell
-	{
-		int piece;
-		int pattern[2][4];
-		bool forbiddden;
-		void debugprint2()
-		{
-			std::cout << std::max(std::max(pattern[0][0], pattern[0][1]), std::max(pattern[0][2], pattern[0][3]));
-			std::cout << std::max(std::max(pattern[1][0], pattern[1][1]), std::max(pattern[1][2], pattern[1][3]));
-		}
-		void debugprint1()
-		{
-			if (piece == Empty) std::cout << "  ";
-			else std::cout << ' ' << piece;
-		}
-		int maxv(int col)
-		{
-			return std::max(std::max(pattern[col][0], pattern[col][1]), std::max(pattern[col][2], pattern[col][3]));
-		}
-	};
-#define BDSIZE (BSIZE + 8)
-	constexpr int range[8] = { -1,-BDSIZE - 1,-BDSIZE,-BDSIZE + 1,1,BDSIZE - 1,BDSIZE,BDSIZE + 1 };
+	
+	//coordinate with cx, cy
+	constexpr int range[8] = { -BDSIZE-1,-BDSIZE,-BDSIZE+1,1,BDSIZE+1,BDSIZE,BDSIZE-1,-1 };
+
 	int Range4[32];
 	constexpr int makePoint(int x, int y) { return x*BDSIZE + y; }
 	constexpr int upperLeft = makePoint(BSIZE + 3, BSIZE + 3);
@@ -76,10 +57,47 @@ namespace PriorRenju
 	{
 		return c->pattern[role][0] == type || c->pattern[role][1] == type || c->pattern[role][2] == type || c->pattern[role][3] == type;
 	}
-
+	void UpdateType(int x, int y);
+	//only for black forbidden check
+	void MakeMove_NoCheck(int next)
+	{
+		int who0 = who, opp0 = opp;
+		who = 0, opp = 1;
+		cell[next].piece = who;
+		int x = next / BDSIZE, y = next%BDSIZE;
+		UpdateType(x, y);
+		who = who0, opp = opp0;
+	}
+	void DelMove_NoCheck(int next)
+	{
+		int x = next / BDSIZE, y = next%BDSIZE;
+		cell[next].piece = Empty;
+		UpdateType(x, y);
+	}
+	bool checkForbidden(int x, int y);
+	bool checkFlex3Line(int x, int y, int d)
+	{
+		int pos = x*BDSIZE + y;
+		for (int j=1;j<4;j++)
+		{
+			int pos1 = pos + range[d] * j;
+			if (cell[pos1].piece == Empty && IsType(&cell[pos1], 0, flex4))
+				if (!checkForbidden(pos1 / BDSIZE, pos1%BDSIZE))
+					return true;
+		}
+		for (int j=1;j<4;j++)
+		{
+			int pos1 = pos - range[d] * j;
+			if (cell[pos1].piece == Empty && IsType(&cell[pos1], 0, flex4))
+				if (!checkForbidden(pos1 / BDSIZE, pos1%BDSIZE))
+					return true;
+		}
+		return false;
+	}
 	bool checkForbidden(int x, int y) 
 	{
 		int pos = x*BDSIZE + y;
+		if (IsType(&cell[pos], 0, win)) return false;
 		if (IsType(&cell[pos], 0, toolong)) return true;
 		int c3=0, c4 = 0;
 		for (int i = 0; i < 4; i++)
@@ -87,11 +105,36 @@ namespace PriorRenju
 			if (cell[pos].pattern[0][i] == block4 ||
 				cell[pos].pattern[0][i] == flex4)
 				c4++;
+		}
+		if (c4 > 1) return true;
+		for (int i = 0; i < 4; i++)
+		{
 			if (cell[pos].pattern[0][i] == flex3)
 				c3++;
 		}
-		if (c4 > 1 || c3 > 1) return true;
+		if (c3 > 1) //recheck
+		{ 
+			c3 = 0;
+			MakeMove_NoCheck(pos);
+			for (int i = 0; i < 4; i++)
+				if (cell[pos].pattern[0][i] == flex3)
+					if (checkFlex3Line(x,y,i))
+						c3++;
+			DelMove_NoCheck(pos);
+			if (c3 > 1) return true;
+		}
 		return false;
+	}
+
+	void checkForbiddens() 
+	{
+		for (int i = 4; i < 4 + BSIZE; i++)
+			for (int j = 4; j < 4 + BSIZE; j++)
+				if (cell(i, j).piece == Empty)
+					if (checkForbidden(i, j))
+						cell(i, j).forbidden = 1;
+					else
+						cell(i, j).forbidden = 0;
 	}
 
 	void UpdateType(int x, int y)
@@ -104,24 +147,22 @@ namespace PriorRenju
 			int pos;
 			a = x + cx[i];
 			b = y + cy[i];
-			pos = a*BDSIZE + b;
 			for (int j = 0; j < 4 && inBorderD(a, b); a += cx[i], b += cy[i], ++j)
 			{
 				key = GetKey(a, b, i);
+				pos = a*BDSIZE + b;
 				cell[pos].pattern[0][i] = patternTable[key][0];
 				cell[pos].pattern[1][i] = patternTable[key][1];
 			}
-			cell[pos].forbiddden = checkForbidden(a, b);
 			a = x - cx[i];
 			b = y - cy[i];
-			pos = a*BDSIZE + b;
 			for (int k = 0; k < 4 && inBorderD(a, b); a -= cx[i], b -= cy[i], ++k)
 			{
 				key = GetKey(a, b, i);
+				pos = a*BDSIZE + b;
 				cell[pos].pattern[0][i] = patternTable[key][0];
 				cell[pos].pattern[1][i] = patternTable[key][1];
 			}
-			cell[pos].forbiddden = checkForbidden(a, b);
 		}
 	}
 
@@ -189,9 +230,7 @@ namespace PriorRenju
 			else
 			{
 				if (line[k - 1] == who)
-				{
 					block++;
-				}
 				break;
 			}
 		}
@@ -216,6 +255,15 @@ namespace PriorRenju
 					block++;
 				break;
 			}
+		}
+		if (count == 5)
+		{
+			count = 1;
+			for (k = 5; k <= 8 && line[k] == who; k++)
+				count++;
+			for (k = 3; k >= 0 && line[k] == who; k--)
+				count++;
+			if (count > 5) return toolong;
 		}
 		return typeTable[len][len2][count][block];
 	}
@@ -253,8 +301,6 @@ namespace PriorRenju
 	{
 		if (len >= 5 && count > 1)
 		{
-			if (count > 5)
-				return toolong;
 			if (count == 5)
 				return win;
 			if (len > 5 && len2 < 5 && block == 0)
@@ -335,7 +381,6 @@ namespace PriorRenju
 		who ^= 1;
 		opp ^= 1;
 		int x = next / BDSIZE, y = next%BDSIZE;
-
 		UpdateType(x, y);
 	}
 	void MakeMove(Coord c) { MakeMove((c.x + 4)*BDSIZE + c.y + 4); }
@@ -350,11 +395,11 @@ namespace PriorRenju
 	void DelMove(Coord c) { DelMove((c.x + 4)*BDSIZE + c.y + 4); }
 	bool AvailablePos(int pos) 
 	{
-		return cell[pos].piece == Empty && (who == White || !cell[pos].forbiddden);
+		return cell[pos].piece == Empty && (who == White || !cell[pos].forbidden);
 	}
 	bool AvailablePosOpp(int pos) 
 	{
-		return cell[pos].piece == Empty && (who == Black || !cell[pos].forbiddden);
+		return cell[pos].piece == Empty && (who == Black || !cell[pos].forbidden);
 	}
 	void reset()
 	{
@@ -397,6 +442,7 @@ namespace PriorRenju
 		for (int i = 0; i < BSIZE; i++)
 			for (int j = 0; j < BSIZE; j++)
 				setPiece(i * BSIZE + j, board(i, j));
+		checkForbiddens();
 	}
 
 	int EvaluateMove(Cell *c)
@@ -592,19 +638,23 @@ namespace PriorRenju
 		if (cb == 0 && cw == 0)
 		{
 			int i = BDSIZE / 2, j=BDSIZE/2;
-			int val = EvaluateMove(&cell(i, j));
-			cand.push_back({ i*BDSIZE + j, val });
+			cand.push_back({ i*BDSIZE + j, 0 });
 			return 1;
 		}
 		if (cb == 1 && cw == 0)
 		{
 			for (int i = b_start; i < b_end; i++)
 				for (int j = b_start; j < b_end; j++)
+					if (std::max(abs(i - bx), abs(j - by)) <= 1 && AvailablePos(i*BDSIZE+j))
+						cand.push_back({ i*BDSIZE + j, 0 });
+			return 1;
+		}
+		if (cb == 1 && cw == 1)
+		{
+			for (int i = b_start; i < b_end; i++)
+				for (int j = b_start; j < b_end; j++)
 					if (std::max(abs(i - bx), abs(j - by)) <= 2 && AvailablePos(i*BDSIZE+j))
-					{
-						int val = EvaluateMove(&cell(i, j));
-						cand.push_back({ i*BDSIZE + j, val });
-					}
+						cand.push_back({ i*BDSIZE + j, 0 });
 			return 1;
 		}
 		return 0;
@@ -654,62 +704,19 @@ namespace PriorRenju
 
 	int GenerateMove(std::vector<int> &result)
 	{
+		checkForbiddens();
 		std::vector<Point> cand;
-		int val;
+		int val=0;
 		if (c1(cand)) goto start;
 		for (int i = b_start; i < b_end; i++)
 			for (int j = b_start; j < b_end; j++)
 				if (AvailablePos(i*BDSIZE+j))
-				{
-					val = EvaluateMove(&cell(i, j));
 					cand.push_back({ i*BDSIZE + j, val });
-				}
 	start:
-		std::sort(cand.begin(), cand.end(), [](const auto &a, const auto &b) {return a.val > b.val; });
-		std::vector<int> moves;
-		int ret = CutMoveList(moves, cand);
+		int ret = 0;
+		for (auto &i : cand)
+			result.push_back(Coord(i.p / BDSIZE - 4, i.p%BDSIZE - 4).p());
 
-		auto vcf_move = vcf_root();
-		if (vcf_move.size() && cand[0].val<2000) //my vcf
-		{
-			for (auto &i : vcf_move)
-				result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
-			return 1;
-		}
-
-
-		if (moves.empty()) {
-			who ^= 1, opp ^= 1;
-			auto vcf_move = vcf_root();
-			who ^= 1, opp ^= 1;
-			if (vcf_move.size() && cand[0].val<1000) //opp vcf
-			{
-				for (int i = lowerRight; i < upperLeft; i++)
-					if (AvailablePos(i)) //add emergency move
-					{
-						auto p = &cell[i];
-						if (IsType(p, who, block4) || IsType(p, who, flex3))
-							result.push_back(Coord(i / BDSIZE - 4, i % BDSIZE - 4).p());
-					}
-				for (auto &i : vcf_move)
-				{
-					for (auto j : Range4)
-						if (AvailablePos(i+j) && EvaluateMove(&cell[i + j])>15)
-							result.push_back(Coord((i + j) / BDSIZE - 4, (i + j) % BDSIZE - 4).p());
-					result.push_back(Coord(i / BDSIZE - 4, i % BDSIZE - 4).p());
-				}
-				return 0;
-			}
-
-			for (auto &i : cand)
-				result.push_back(Coord(i.p / BDSIZE - 4, i.p%BDSIZE - 4).p());
-		}
-		else {
-			if (ret == 0 && cand[0].val >= 200)
-				GenerateMoveOpp(moves);
-			for (auto &i : moves)
-				result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
-		}
 		return ret;
 	}
 
