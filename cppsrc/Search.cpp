@@ -438,7 +438,7 @@ Coord Player::run(Board &gameboard, int nowcol)
 		ret = Coord(mcts.solvePolicy(cfg_temprature2, policy, winrate));
 	else
 		ret = Coord(mcts.solvePolicy(cfg_temprature1, policy, winrate));
-	if (gameboard.count() == 0) return randomOpening(gameboard);
+	//if (gameboard.count() == 0) return randomOpening(gameboard);
 	if (cfg_swap3 && gameboard.count() == 3 && gameboard.countv(2)==1 && mcts.mcwin<0)
 		return Coord(BLSIZE);
 	return ret;

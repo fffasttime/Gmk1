@@ -44,13 +44,15 @@ std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, boo
 		trans = 0;
 	boardTransform(trans, board);
 	Network::NNPlanes input;
-#if 1
+#ifdef RULE_GOMOKU
 	input.resize(2);
-#else
-	input.resize(10);
+#endif
+#ifdef RULE_RENJU
+	input.resize(3);
 #endif
 	for (int i = 0; i < BLSIZE; i++)
 	{
+	#ifdef RULE_GOMOKU
 		if (board[i] == 0)
 		{
 			input[0][i] = 0;
@@ -66,6 +68,12 @@ std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, boo
 			input[0][i] = 0;
 			input[1][i] = 1;
 		}
+	#endif
+	#ifdef RULE_RENJU
+		input[0][i] = (board[i] == 1);
+		input[1][i] = (board[i] == 2);
+		input[2][i] = col - 1;
+	#endif
 	}
 #if 0
 	assert(Prior::who==col-1);

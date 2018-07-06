@@ -75,6 +75,21 @@ namespace PriorRenju
 		UpdateType(x, y);
 	}
 	bool checkForbidden(int x, int y);
+	bool recheckFlex4Line(int x, int y, int d)
+	{
+		int pos = x*BDSIZE + y;
+		MakeMove_NoCheck(pos);
+		int p1 = pos + range[d];
+		while (cell[p1].piece == 0)
+			p1 += range[d];
+		int p2 = pos - range[d];
+		while (cell[p2].piece == 0)
+			p2 -= range[d];
+		bool flag = checkForbidden(p1 / BDSIZE, p1%BDSIZE) || 
+					checkForbidden(p2 / BDSIZE, p2%BDSIZE);
+		DelMove_NoCheck(pos);
+		return !flag;
+	}
 	bool checkFlex3Line(int x, int y, int d)
 	{
 		int pos = x*BDSIZE + y;
@@ -82,16 +97,33 @@ namespace PriorRenju
 		{
 			int pos1 = pos + range[d] * j;
 			if (cell[pos1].piece == Empty && IsType(&cell[pos1], 0, flex4))
-				if (!checkForbidden(pos1 / BDSIZE, pos1%BDSIZE))
-					return true;
+				if (!checkForbidden(pos1 / BDSIZE, pos1%BDSIZE) && !IsType(&cell[pos1], 0, win))
+					if (recheckFlex4Line(pos1 / BDSIZE, pos1%BDSIZE, d))
+						return true;
 		}
 		for (int j=1;j<4;j++)
 		{
 			int pos1 = pos - range[d] * j;
 			if (cell[pos1].piece == Empty && IsType(&cell[pos1], 0, flex4))
-				if (!checkForbidden(pos1 / BDSIZE, pos1%BDSIZE))
-					return true;
+				if (!checkForbidden(pos1 / BDSIZE, pos1%BDSIZE) && !IsType(&cell[pos1], 0, win))
+					if (recheckFlex4Line(pos1 / BDSIZE, pos1%BDSIZE,d))
+						return true;
 		}
+		return false;
+	}
+	bool check4SameLine(int x, int y, int d)
+	{
+		int pos = x*BDSIZE + y;
+		int p1 = pos + range[d], i=0, j=0;
+		while (cell[p1].piece == 0 && i<1)
+			p1 += range[d], i++;
+		int p2 = pos - range[d];
+		while (cell[p2].piece == 0 && j<1)
+			p2 -= range[d], j++;
+		if (cell[p1].piece == 2 && cell[p2].piece == 2 &&
+			(cell[p1].pattern[0][d] == flex4 || cell[p1].pattern[0][d] == block4) && 
+			(cell[p2].pattern[0][d] == flex4 || cell[p2].pattern[0][d] == block4))
+			return true;
 		return false;
 	}
 	bool checkForbidden(int x, int y) 
@@ -104,7 +136,11 @@ namespace PriorRenju
 		{
 			if (cell[pos].pattern[0][i] == block4 ||
 				cell[pos].pattern[0][i] == flex4)
+			{
 				c4++;
+				if (check4SameLine(x, y, i))
+					return true; 
+			}
 		}
 		if (c4 > 1) return true;
 		for (int i = 0; i < 4; i++)
@@ -463,68 +499,17 @@ namespace PriorRenju
 		/*
 		iwin: 10000  owin: 5000 if4,i2b4:2400 ibf&if3:2000 of4,o2b4:1200 obf&of3:1000 ilive2:400
 		*/
-		if (cand[0].val >= 2400)
+		if (cand[0].val >= 5000)
 		{
 			moves.push_back(cand[0].p);
 			int i = 1;
 			for (; i < candCount && cand[i].val == cand[i - 1].val; i++)
 				moves.push_back(cand[i].p);
-			if (cand[0].val == 10000 || cand[0].val == 2400)
+			if (cand[0].val == 10000)
 				return 1;
 			if (i > 1) return -1;
 			else return 0;
 		}
-		if (cand[0].val == 2000)
-		{
-			int v = cand[0].p;
-			for (auto j : Range4)
-				if (AvailablePosOpp(j+v) && (IsType(&cell[j + v], opp, flex4) || IsType(&cell[j + v], opp, block4))) //no more link-5
-					goto next;
-			moves.push_back(cand[0].p);
-			return 1;
-		}
-	next:
-		if (cand[0].val == 1200 || cand[0].val == 1000)
-		{
-			moves.push_back(cand[0].p);
-			for (int i = 1; i < candCount && cand[i].val == cand[i - 1].val; i++)
-				moves.push_back(cand[i].p);
-			int s0 = moves.size();
-			for (int i = moves.size(); i < candCount; ++i)
-			{
-				Cell *p = &cell[cand[i].p];
-				if (IsType(p, who, block4))
-					moves.push_back(cand[i].p);
-			}
-			return 0;
-		}
-		if (cand[0].val == 400)
-		{
-			int i;
-			for (i = moves.size(); i < candCount; ++i)
-				if (IsType(&cell[cand[i].p], opp, block4) || IsType(&cell[cand[i].p], opp, flex4))
-					break;
-			if (i == candCount)
-			{
-				moves.push_back(cand[0].p);
-				return 1;
-			}
-		}
-		if (cand[0].val == 200)
-		{
-			moves.push_back(cand[0].p);
-			for (int i = 1; i < candCount && cand[i].val == cand[i - 1].val; i++)
-				moves.push_back(cand[i].p);
-			int s0 = moves.size();
-			for (int i = moves.size(); i < candCount; ++i)
-			{
-				Cell *p = &cell[cand[i].p];
-				if (IsType(p, who, block4) || IsType(p, who, flex3) || IsType(p, who, block3))
-					moves.push_back(cand[i].p);
-			}
-			return 0;
-		}
-
 		return 0;
 	}
 
@@ -711,12 +696,24 @@ namespace PriorRenju
 		for (int i = b_start; i < b_end; i++)
 			for (int j = b_start; j < b_end; j++)
 				if (AvailablePos(i*BDSIZE+j))
+				{
+					val = EvaluateMove(&cell(i, j));
 					cand.push_back({ i*BDSIZE + j, val });
+				}
 	start:
-		int ret = 0;
-		for (auto &i : cand)
-			result.push_back(Coord(i.p / BDSIZE - 4, i.p%BDSIZE - 4).p());
-
+		std::sort(cand.begin(), cand.end(), [](const auto &a, const auto &b) {return a.val > b.val; });
+		std::vector<int> moves;
+		int ret = CutMoveList(moves, cand);
+		if (moves.empty())
+		{
+			for (auto &i : cand)
+				result.push_back(Coord(i.p / BDSIZE - 4, i.p%BDSIZE - 4).p());
+		}
+		else
+		{
+			for (auto &i : moves)
+				result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
+		}
 		return ret;
 	}
 
