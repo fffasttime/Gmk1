@@ -374,7 +374,9 @@ namespace PriorRenju
 
 		if (type[win] > 0)
 			return 5000;
-		if (type[flex4] > 0 || type[block4] > 1)
+		if (type[flex4] > 0)
+			return 1300;
+		if(type[block4] > 1)
 			return 1200;
 		if (type[block4] > 0 && type[flex3] > 0)
 			return 1000;
@@ -492,123 +494,206 @@ namespace PriorRenju
 		else
 			return score[who] * 2 + score[opp];
 	}
-
-	int CutMoveList(std::vector<int> &moves, const std::vector<Point> &cand)
+	bool defendPoint[BDSIZE*BDSIZE];
+	int CutMoveList(std::vector<int> &moves, std::vector<Point> cand)
 	{
+		memset(defendPoint, 0, sizeof(defendPoint));
 		int candCount = cand.size();
 		/*
-		iwin: 10000  owin: 5000 if4,i2b4:2400 ibf&if3:2000 of4,o2b4:1200 obf&of3:1000 ilive2:400
+		iwin: 10000  owin: 5000 if4:2600 i2b4:2400 ibf&if3:2000 of4:1300 o2b4:1200 obf&of3:1000 ilive2:400
 		*/
-		if (cand[0].val >= 5000)
-		{
-			moves.push_back(cand[0].p);
-			int i = 1;
-			for (; i < candCount && cand[i].val == cand[i - 1].val; i++)
-				moves.push_back(cand[i].p);
+		if (who == White) {
 			if (cand[0].val == 10000)
+			{
+				moves.push_back(cand[0].p);
+				for (int i = 1; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					moves.push_back(cand[i].p);
 				return 1;
-			if (i > 1) return -1;
-			else return 0;
-		}
-		return 0;
-	}
-
-	//maybe slow
-	int judgewin_current()
-	{
-		std::vector<Point> cand;
-		for (int i = lowerRight; i < upperLeft; i++)
-			if (AvailablePos(i))
-			{
-				int val = EvaluateMove(&cell[i]);
-				if (val>200 || IsType(&cell[i], who, block4) || IsType(&cell[i], opp, block4))
-					cand.push_back({ i, val });
 			}
-		std::sort(cand.begin(), cand.end(), [](const auto &a, const auto &b) {return a.val > b.val; });
-		std::vector<int> moves;
-		int ret = 0;
-		if (cand.size())
-			ret = CutMoveList(moves, cand);
-		return ret;
-	}
-
-	int vcf(int deep, int lastpoint);
-	int vcf_opp(int deep, int lastpoint)
-	{
-		int result = 0;
-		for (auto r : Range4)
-		{
-			int v = lastpoint + r;
-			if (AvailablePos(v))
+			if (cand[0].val == 5000 && !cell[cand[0].p].forbidden)
 			{
-				auto p = &cell[v];
-				if (IsType(p, opp, win))
-				{
-					MakeMove(v);
-					if (judgewin_current() > 0)
-					{
-						result = 1;
-						DelMove(v);
-						break;
+				moves.push_back(cand[0].p);
+				int i = 1;
+				for (; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					if (!cell[cand[i].p].forbidden)
+						moves.push_back(cand[i].p);
+				if (moves.size() > 1) return -1; 
+				return 0;
+			}
+			if (cand[0].val >= 2400)
+			{
+				moves.push_back(cand[0].p);
+				int i = 1;
+				for (; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					moves.push_back(cand[i].p);
+				return 1;
+			}
+			if (cand[0].val == 2000)
+			{
+				int v = cand[0].p;
+				for (auto j : Range4)
+					if (cell[j + v].piece == Empty && (IsType(&cell[j + v], opp, flex4) || IsType(&cell[j + v], opp, block4))) //no more link-5
+					{ 
+						cand.erase(cand.begin());
+						goto next;
 					}
-					for (auto j : Range4)
-						if (AvailablePosOpp(j + v) && IsType(&cell[j + v], opp, win) && !IsType(&cell[j + v], who, block4)) //no more link-5
+				moves.push_back(cand[0].p);
+				return 1;
+			}
+		next:
+			return 0;
+			/*
+			if (cand[0].val == 1300 && !cell[cand[0].p].forbidden)
+			{
+				moves.push_back(cand[0].p);
+				for (int i = 1; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					if (!cell[cand[i].p].forbidden)
+					{ 
+						moves.push_back(cand[i].p);
+						int cur = cand[i].p;
+						for (int d = 0; d < 4; d++)
+							if (cell[cur].pattern[opp][d] == flex4)
+								for (int j = -3; j <= 3; j++)
+									if (cell[cur + range[d] * j].piece == Empty && IsType(&cell[cur + range[d] * j], opp, block4))
+										defendPoint[cur + range[d] * j] = true;
+					}
+				int s0 = moves.size();
+				for (int i = moves.size(); i < candCount; ++i)
+				{
+					Cell *p = &cell[cand[i].p];
+					if (IsType(p, who, block4))
+						moves.push_back(cand[i].p);
+				}
+				return 0;
+			}
+			if (cand[0].val == 1000 && !cell[cand[0].p].forbidden)
+			{
+				moves.push_back(cand[0].p);
+				for (int i = 1; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					moves.push_back(cand[i].p);
+				int s0 = moves.size();
+				for (int i = moves.size(); i < candCount; ++i)
+				{
+					Cell *p = &cell[cand[i].p];
+					if (IsType(p, who, block4))
+						moves.push_back(cand[i].p);
+				}
+				int cur = cand[0].p;
+				for (int d = 0; d < 4; d++)
+					if (cell[cur].pattern[opp][d] == flex3)
+						for (int i = -4; i <= 4; i++)
+							if (cell[cur + range[d] * i].piece == Empty && IsType(&cell[cur + range[d] * i], opp, flex3))
+								defendPoint[cur + range[d] * i] = true;
+				return 0;
+			}*//*
+			if (cand[0].val == 400)
+			{
+				int i;
+				for (i = moves.size(); i < candCount; ++i)
+					if (IsType(&cell[cand[i].p], opp, block4) || IsType(&cell[cand[i].p], opp, flex4))
+						break;
+				if (i == candCount)
+				{
+					moves.push_back(cand[0].p);
+					return 1;
+				}
+			}*/
+		}
+		else {
+			if (cand[0].val >= 5000)
+			{
+				moves.push_back(cand[0].p);
+				int i = 1;
+				for (; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					moves.push_back(cand[i].p);
+				if (cand[0].val == 10000)
+					return 1;
+				if (cell[cand[0].p].forbidden) { moves.clear(); return -1; };
+				if (i > 1) { moves.clear(); return -1; }
+				return 0;
+			}
+			std::vector<Point> temp(cand);
+			cand.clear();
+			for (auto &point : temp)
+				if (!cell[point.p].forbidden)
+					cand.push_back(point);
+			if (cand.empty()) return -1;
+			if (cand[0].val == 2600)
+			{
+				moves.push_back(cand[0].p);
+				int i = 1;
+				for (; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					moves.push_back(cand[i].p);
+				return 1; 
+			}
+			if (cand[0].val == 2000)
+			{
+				int v = cand[0].p;
+				for (int d = 0; d < 4; d++)
+					if (cell[v].pattern[who][d] == flex3)
+						if (!checkFlex3Line(v / BDSIZE, v%BDSIZE, d))
 						{
-							result = 0;
-							DelMove(v);
-							return 0;
+							cand.erase(cand.begin());
+							goto next2; 
 						}
-					result = vcf(deep + 1, lastpoint);
-					DelMove(v);
-					break;
-				}
+				for (auto j : Range4)
+					if (cell[j + v].piece == Empty && (IsType(&cell[j + v], opp, flex4) || IsType(&cell[j + v], opp, block4))) //no more link-5
+					{
+						cand.erase(cand.begin());
+						goto next2;
+					}
+				moves.push_back(cand[0].p);
+				return 1;
 			}
-		}
-		return result;
-	}
-	int vcfcount;
-	int vcf(int deep, int lastpoint)
-	{
-		vcfcount++;
-		if (deep > 13 || vcfcount > 6000) return 0;
-		for (auto r : Range4)
-		{
-			int v = lastpoint + r;
-			if (AvailablePos(v))
+		next2:
+			return 0;/*
+			if (cand[0].val == 1300 || cand[0].val == 1200 || cand[0].val == 1000)
 			{
-				auto p = &cell[v];
-				if (IsType(p, who, block4))
+				moves.push_back(cand[0].p);
+				for (int i = 1; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					moves.push_back(cand[i].p);
+				int s0 = moves.size();
+				for (int i = moves.size(); i < candCount; ++i)
 				{
-					int ret = 0;
-					MakeMove(v);
-					ret = vcf_opp(deep + 1, v);
-					DelMove(v);
-
-					if (ret) return 1;
+					Cell *p = &cell[cand[i].p];
+					if (IsType(p, who, block4))
+						moves.push_back(cand[i].p);
 				}
+				if (cand[0].val==1000)
+				{ 
+					int cur = cand[0].p;
+					for (int d = 0; d < 4; d++)
+						if (cell[cur].pattern[opp][d] == flex3)
+							for (int i = -3; i <= 3; i++)
+								if (cell[cur + range[d] * i].piece == Empty && IsType(&cell[cur + range[d] * i], opp, flex3))
+									defendPoint[cur + range[d] * i] = true;
+				}
+				return 0;
 			}
+			if (cand[0].val == 200)
+			{
+				moves.push_back(cand[0].p);
+				for (int i = 1; i < candCount && cand[i].val == cand[i - 1].val; i++)
+					moves.push_back(cand[i].p);
+				int s0 = moves.size();
+				for (int i = moves.size(); i < candCount; ++i)
+				{
+					Cell *p = &cell[cand[i].p];
+					if (IsType(p, who, block4) || IsType(p, who, flex3) || IsType(p, who, block3))
+						moves.push_back(cand[i].p);
+				}
+				int cur = cand[0].p;
+				for (int d = 0; d < 4; d++)
+					if (cell[cur].pattern[opp][d] == flex3)
+						for (int i = -3; i <= 3; i++)
+							if (cell[cur + range[d] * i].piece == Empty && IsType(&cell[cur + range[d] * i], opp, flex3))
+								defendPoint[cur + range[d] * i] = true;
+				return 0;
+			}
+			*/
 		}
+		
 		return 0;
-	}
-
-	std::vector<int> vcf_root()
-	{
-		vcfcount = 0;
-		std::vector<int> result;
-		for (int i = lowerRight; i < upperLeft; i++)
-			if (AvailablePos(i))
-			{
-				auto p = &cell[i];
-				if (IsType(p, who, block4))
-				{
-					MakeMove(i);
-					if (vcf_opp(1, i))
-						result.push_back(i);
-
-					DelMove(i);
-				}
-			}
-		return result;
 	}
 
 	bool c1(std::vector<Point> &cand)
@@ -645,46 +730,24 @@ namespace PriorRenju
 		return 0;
 	}
 
-	Board featurelayer[2][4];
-	void getFeature()
+	std::vector<int> vcf_root()
 	{
-		memset(featurelayer, 0, sizeof(featurelayer));
-		for (int i = b_start; i < b_end; i++)
-			for (int j = b_start; j < b_end; j++)
-				if (AvailablePos(i*BDSIZE+j))
-				{
-					int c0 = cell[i*BDSIZE + j].maxv(who);
-					int c1 = cell[i*BDSIZE + j].maxv(opp);
-					if (c0>1) featurelayer[0][0](i - 4, j - 4) = 1;
-					if (c0>2) featurelayer[0][1](i - 4, j - 4) = 1;
-					if (c0>3) featurelayer[0][2](i - 4, j - 4) = 1;
-					if (c0>5) featurelayer[0][3](i - 4, j - 4) = 1;
-					if (c1>1) featurelayer[1][0](i - 4, j - 4) = 1;
-					if (c1>2) featurelayer[1][1](i - 4, j - 4) = 1;
-					if (c1>3) featurelayer[1][2](i - 4, j - 4) = 1;
-					if (c1>5) featurelayer[1][3](i - 4, j - 4) = 1;
-				}
-	}
-
-	void GenerateMoveOpp(std::vector<int> &moves)
-	{
-		BoardArray<int, BDSIZE> visited;
-		visited.clear();
-		int s0 = moves.size();
-		for (auto i : moves)
-			visited[i] = 1;
-		for (int i = 0; i < s0; i++)
-			for (auto j : Range4)
+		std::vector<int> result;
+		if (who == Black) return result;
+		for (int i = lowerRight; i < upperLeft; i++)
+			if (cell[i].piece == Empty)
 			{
-				int pos = moves[i] + j;
-				if (AvailablePos(pos) && !visited[pos])
+				auto p = &cell[i];
+				if (IsType(p, who, block4))
 				{
-					MakeMove(pos);
-					if (!judgewin_current()) moves.push_back(pos);
-					DelMove(pos);
+					MakeMove(i);
+					for (int j = lowerRight; j < upperLeft; j++)
+						if (cell[j].piece == Empty && IsType(&cell[j], opp, win) && checkForbidden(j / BDSIZE, j % BDSIZE))
+							result.push_back(i);
+					DelMove(i);
 				}
-				visited[pos] = 1;
 			}
+		return result;
 	}
 
 	int GenerateMove(std::vector<int> &result)
@@ -695,7 +758,7 @@ namespace PriorRenju
 		if (c1(cand)) goto start;
 		for (int i = b_start; i < b_end; i++)
 			for (int j = b_start; j < b_end; j++)
-				if (AvailablePos(i*BDSIZE+j))
+				if (cell(i,j).piece==Empty)
 				{
 					val = EvaluateMove(&cell(i, j));
 					cand.push_back({ i*BDSIZE + j, val });
@@ -704,15 +767,30 @@ namespace PriorRenju
 		std::sort(cand.begin(), cand.end(), [](const auto &a, const auto &b) {return a.val > b.val; });
 		std::vector<int> moves;
 		int ret = CutMoveList(moves, cand);
+		auto vcf_move = vcf_root();
+		if (vcf_move.size() && cand[0].val<2000) //my vcf
+		{
+			for (auto &i : vcf_move)
+				result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
+			return 1;
+		}
 		if (moves.empty())
 		{
 			for (auto &i : cand)
-				result.push_back(Coord(i.p / BDSIZE - 4, i.p%BDSIZE - 4).p());
+				if (AvailablePos(i.p))
+					result.push_back(Coord(i.p / BDSIZE - 4, i.p%BDSIZE - 4).p());
 		}
 		else
 		{
 			for (auto &i : moves)
-				result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
+				if (AvailablePos(i))
+					result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
+			if (ret == 0) 
+			{
+				for (int i = lowerRight; i < upperLeft; i++)
+					if (AvailablePos(i) && defendPoint[i])
+						result.push_back(Coord(i / BDSIZE - 4, i%BDSIZE - 4).p());
+			}
 		}
 		return ret;
 	}

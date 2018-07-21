@@ -11,41 +11,41 @@ using std::vector;
 
 /*
 Board emptygameboard = {
-	{
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		0,0,0,1,1,0,1,1,1,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,1,0,0,0,1,0,0,0 ,
-		0,0,0,0,0,0,1,0,1,0,1,0,0,0,0 ,
-		0,0,0,0,0,0,0,1,0,0,1,1,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,1,0,1,0,0,0 ,
-		0,0,0,0,0,0,0,0,1,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,2,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 } };
+{
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,2,0,0,1,2,0,0,0,0,0,0,0 ,
+0,0,0,0,1,0,2,0,0,0,0,0,0,0,0 ,
+0,0,0,0,1,2,2,2,0,1,0,0,0,0,0 ,
+0,0,0,0,0,0,2,1,1,0,0,0,0,0,0 ,
+0,0,0,0,0,1,2,2,0,0,0,0,0,0,0 ,
+0,0,0,0,2,1,1,0,1,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  } };
 //*/
 //*
 Board emptygameboard = {
 	{
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
-		 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  } };
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 ,
+0,0,0,0,0,0,0,0,0,0,0,0,0,0,0  } };
 //*/
 
 void swap3(Board &board)
@@ -83,6 +83,7 @@ void Game::make_move(Coord pos)
 		gameboard.swap();
 	else
 		gameboard(pos) = nowcol;
+	
 	history.push_back(pos.p());
 	nowcol = nowcol % 2 + 1;
 }
@@ -121,7 +122,7 @@ void Game::runGame(Player &player1, Player &player2)
 {
 	reset();
 	if (show_mode == 1) print(gameboard);
-	while (gamestep < BLSIZE)
+	while (gameboard.count() < BLSIZE)
 	{
 		Coord c;
 		if (nowcol == 1)
@@ -136,7 +137,7 @@ void Game::runGame(Player &player1, Player &player2)
 		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
-	if (gamestep == BLSIZE) winner = 0;
+	if (gameboard.count() == BLSIZE) winner = 0;
 	printWinner(winner);
 }
 
@@ -146,7 +147,7 @@ void Game::runGame_selfplay(Player &player)
 	vector<BoardWeight> policy;
 	vector<float> winrate;
 	if (show_mode==1) print(gameboard);
-	while (gamestep < BLSIZE)
+	while (gameboard.count() < BLSIZE)
 	{
 		Coord c = player.run(gameboard, nowcol);
 		make_move(c);
@@ -159,7 +160,7 @@ void Game::runGame_selfplay(Player &player)
 		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
-	if (gamestep == BLSIZE) winner = 0;
+	if (gameboard.count() == BLSIZE) winner = 0;
 	printWinner(winner);
 	EposideTrainingData data(history, policy, winrate , winner);
 	ofstream out(output_file, std::ios::app|std::ios::binary);
@@ -170,7 +171,7 @@ void Game::runGameUser(Player &player1, int col)
 {
 	reset();
 	print(gameboard);
-	while (gamestep < BLSIZE)
+	while (gameboard.count() < BLSIZE)
 	{
 		Coord c;
 		if (nowcol == col)
@@ -184,7 +185,7 @@ void Game::runGameUser(Player &player1, int col)
 		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
-	if (gamestep == BLSIZE) winner = 0;
+	if (gameboard.count() == BLSIZE) winner = 0;
 	printWinner(winner);
 }
 
@@ -192,12 +193,11 @@ void Game::runGameUser2()
 {
 	reset();
 	print(gameboard);
-	while (gamestep < BLSIZE)
+	while (gameboard.count() < BLSIZE)
 	{
 		Coord c;
 		c = getPlayerPos(gameboard);
 		make_move(c);
-		Prior::setbyBoard(gameboard);
 		if (nowcol == C_B)
 			for (int i = 0; i < BLSIZE; i++)
 				if (gameboard[i] == C_E && Prior::cell(i / BSIZE + 4, i%BSIZE + 4).forbidden)
@@ -212,7 +212,7 @@ void Game::runGameUser2()
 		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
-	if (gamestep == BLSIZE) winner = 0;
+	if (gameboard.count() == BLSIZE) winner = 0;
 	printWinner(winner);
 }
 

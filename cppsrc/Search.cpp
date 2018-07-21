@@ -215,6 +215,8 @@ void MCTS::solve(BoardWeight &result)
 			cur = maxp;
 			make_move(tr[cur].move);
 			//if (tr[cur].is_end) break;
+			if (cfg_loglevel == 4) 
+				debug_s << Coord(tr[cur].move).format() << ' ';
 		}
 		//simulation & backpropagation
 		simulation_back(cur);
@@ -224,7 +226,7 @@ void MCTS::solve(BoardWeight &result)
 	mcwin = -tr[root].sumv / tr[root].cnt;
 	debug_s << "mc win: " << vresultToWinrate(mcwin) << '\n' << "counter:" << counter << '\n'
 		<< "time: " << clock() - starttime << "  playout: " << played << '\n';
-	if (cfg_loglevel==2)
+	if (cfg_loglevel>=2)
 	{
 		debug_s << board2showString(board, true);
 		vector<std::pair<int, int>> pvlist;
@@ -296,6 +298,7 @@ void MCTS::simulation_back(int cur)
 	{
 		auto result = getEvaluation(board, nowcol, network, use_transform, tr[cur].move);
 		val = -result.first.v;
+		if (cfg_loglevel == 4) debug_s << vresultToWinrate(-val) <<"\n";
 		expand(cur, result.first, result.second);
 		if (val<-0.99 || val>0.99) tr[cur].is_end = true;
 		//auto &it = hash_table.find(boardhash());
@@ -392,7 +395,7 @@ Coord Player::randomOpening(Board gameboard)
 	if (gameboard.count() == 0)
 	{
 		return { 2+rand()%11, 2 + rand() % 11 };
-	}/*
+	}
 	else if (gameboard.count() == 1)
 	{
 		int first;
@@ -412,8 +415,8 @@ Coord Player::randomOpening(Board gameboard)
 		BoardWeight po;
 		po.clear();
 		float sum = 0;
-		for (int i = x-3; i <= x+3; i++)
-			for (int j = y-3; j <= y+3; j++)
+		for (int i = x-2; i <= x+2; i++)
+			for (int j = y-2; j <= y+2; j++)
 			{
 				if (gameboard(i, j) == 0)
 					if (i >= x-1 && i <= x+1 && j >= y-1 && j <= y+1)
@@ -424,7 +427,7 @@ Coord Player::randomOpening(Board gameboard)
 		for (int i = 0; i < BLSIZE; i++)
 			po[i] /= sum;
 		return randomSelect(po, BLSIZE);
-	}*/
+	}
 }
 
 Coord Player::run(Board &gameboard, int nowcol)
@@ -438,7 +441,7 @@ Coord Player::run(Board &gameboard, int nowcol)
 		ret = Coord(mcts.solvePolicy(cfg_temprature2, policy, winrate));
 	else
 		ret = Coord(mcts.solvePolicy(cfg_temprature1, policy, winrate));
-	//if (gameboard.count() == 0) return randomOpening(gameboard);
+	if (gameboard.count() == 1 || gameboard.count()==2) return randomOpening(gameboard);
 	if (cfg_swap3 && gameboard.count() == 3 && gameboard.countv(2)==1 && mcts.mcwin<0)
 		return Coord(BLSIZE);
 	return ret;

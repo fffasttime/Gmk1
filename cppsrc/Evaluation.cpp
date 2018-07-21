@@ -42,6 +42,7 @@ std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, boo
 		trans = rand() % 8;
 	else
 		trans = 0;
+	Board oboard = board;
 	boardTransform(trans, board);
 	Network::NNPlanes input;
 #ifdef RULE_GOMOKU
@@ -89,6 +90,9 @@ std::pair<RawOutput, Board> getEvaluation(Board board, int col, NN *network, boo
 	std::vector<int> avail;
 	int simplewin = Prior::GenerateMove(avail);
 	Board avail_list;
+	if (avail.empty())
+		for (int i = 0; i < BLSIZE; i++)
+			if (oboard[i]==0) avail.push_back(i); //todo, tempreraly cover a bug
 	avail_list.clear();
 	for (auto move : avail)
 		avail_list[move] = 1;
