@@ -85,7 +85,7 @@ int run()
 	else if (mode == 2 || mode == 3)
 	{
 		if (cfg_loglevel) logOpen(exepath + "/" + logfilename);
-		Player player1(network_file, playout, puct, false, true, 0.6f);
+		Player player1(network_file, playout, puct, true, true, 0.5f);
 		minit();
 		game.runGameUser(player1, mode - 1);
 		mexit();

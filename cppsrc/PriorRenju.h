@@ -40,5 +40,6 @@ namespace PriorRenju
 	};
 	extern BoardArray<Cell, BDSIZE> cell;
 
+	bool AvailablePos(int pos);
 	void checkForbiddens();
 }

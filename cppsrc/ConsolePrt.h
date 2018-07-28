@@ -13,9 +13,10 @@ void mexit();
 Coord getCurClick(); 
 Coord getPlayerPos(Board &gameboard);
 
+void cls();
 void gotoXY(short x, short y);
 
 #endif
 
 Coord MlocToPloc(const Coord &p);
-void print(Board &gameboard);
+void print(Board &gameboard, int col = 0, int lastmove = -1);

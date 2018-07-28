@@ -1,4 +1,5 @@
 #include "ConsolePrt.h"
+#include "Game.h"
 
 #ifdef WIN_CON
 #include <Windows.h>
@@ -67,34 +68,49 @@ Coord getPlayerPos(Board &gameboard)
 	return sp;
 }
 
-void print(Board &gameboard)
+void cls() {
+	gotoXY(0, 0);
+	for (int i = 0; i < 5000; i++)
+		putchar(' ');
+}
+
+void print(Board &gameboard, int col, int lastmove)
 {
 	gotoXY(0, 0);
 	for (int i = 0; i<BSIZE; i++)
 	{
 		for (int j = 0; j<BSIZE; j++)
 		{
-			if (gameboard(i, j) == C_E)
-				printf("©à");
-			else if (gameboard(i, j) == C_W)
+			if (gameboard(i, j) == C_W)
 				printf("¡ð");
 			else if (gameboard(i, j) == C_B)
 				printf("¡ñ");
+			else if (gameboard(i, j) == C_E && (col == 0 ) || judgeAvailable(Coord(i, j).p()))
+				printf("©à");
 			else
-				printf("¡õ");
+				printf("¡Á");
 		}/*
-		for (int j = 0; j<BSIZE; j++)
-		{
-			if (gameboard(i, j) == C_E)
-				fout << "©à";
-			else if (gameboard(i, j) == C_W)
-				fout << "¡ð";
-			else
-				fout << "¡ñ";
-		}*/
+		 for (int j = 0; j<BSIZE; j++)
+		 {
+		 if (gameboard(i, j) == C_E)
+		 fout << "©à";
+		 else if (gameboard(i, j) == C_W)
+		 fout << "¡ð";
+		 else
+		 fout << "¡ñ";
+		 }*/
 		printf("\n");
 		//fout << "\n";
 	}
-
+	if (col && lastmove != -1) {
+		gotoXY(lastmove % BSIZE * 2, lastmove / BSIZE);
+		if (col == C_W)
+			printf("¡ø");
+		else
+			printf("¡÷");
+	}
+	printf("\n");
+	gotoXY(0, BSIZE + 1);
+	printf("[³·Ïú]  [ÖØ×ö]");
 	logRefrsh();
 }

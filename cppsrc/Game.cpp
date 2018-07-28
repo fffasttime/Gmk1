@@ -77,25 +77,43 @@ int judgeWin(Board &board)
 	return 0;
 }
 
+bool judgeAvailable(int pos) {
+#ifdef RULE_RENJU
+	return Prior::AvailablePos((pos/BSIZE+4)*BDSIZE + pos%BSIZE +4);
+#else
+	return 1;
+#endif
+}
+
 void Game::make_move(Coord pos)
 {
 	if (pos.p() == BLSIZE) 
 		gameboard.swap();
 	else
 		gameboard(pos) = nowcol;
-	
-	history.push_back(pos.p());
+
+	if (gamestep >= history.size())
+		history.push_back(pos.p());
+	else
+		history[gamestep] = pos.p();
+
 	nowcol = nowcol % 2 + 1;
+	Prior::setbyBoard(gameboard);
+	Prior::setPlayer(nowcol);
+	gamestep++;
 }
 
 void Game::unmake_move()
 {
-	if (history.back() == BLSIZE)
+	gamestep--;
+	if (history[gamestep] == BLSIZE)
 		gameboard.swap();
 	else
-		gameboard[history.back()] = 0;
-	history.pop_back();
+		gameboard[history[gamestep]] = 0;
+
 	nowcol = nowcol % 2 + 1;
+	Prior::setbyBoard(gameboard);
+	Prior::setPlayer(nowcol);
 }
 
 void Game::reset()
@@ -134,7 +152,6 @@ void Game::runGame(Player &player1, Player &player2)
 		else if (show_mode == 0) std::cout << c.format() << ' ';
 		if (judgeWin(gameboard))
 			break;
-		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
 	if (gameboard.count() == BLSIZE) winner = 0;
@@ -157,7 +174,6 @@ void Game::runGame_selfplay(Player &player)
 		else if (show_mode == 0) std::cout << c.format() <<' ';
 		if (judgeWin(gameboard))
 			break;
-		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
 	if (gameboard.count() == BLSIZE) winner = 0;
@@ -167,26 +183,100 @@ void Game::runGame_selfplay(Player &player)
 	data.writeByte(out);
 }
 
+int Game::getPlayerClick(Coord &posresult) {
+	while (1) {
+		auto mloc = getCurClick();
+		auto sp = MlocToPloc(mloc);
+		if (inBorder(sp) && !gameboard(sp))// && judgeAvailable(gameboard, sp(), nowcol)) 
+		{
+			posresult = sp;
+			return 0;
+		}
+		//undo
+		if (mloc.x == BSIZE + 1 && mloc.y <= 5) {
+			if (gamestep > 1) {
+				unmake_move();
+				unmake_move();
+				print(gameboard, nowcol, gamestep ? history[gamestep - 1] : -1);
+			}
+			return 1;
+		}
+		//redo
+		if (mloc.x == BSIZE + 1 && mloc.y >= 8 && mloc.y <= 13) {
+			if (gamestep <= history.size() - 2) {
+				make_move(history[gamestep]);
+				make_move(history[gamestep]);
+				print(gameboard, nowcol, history[gamestep - 1]);
+			}
+			return 1;
+		}
+	}
+}
+
+void Game::saveSGF(int col) {
+	ofstream file("result.txt", std::ios::app);
+	file << "\n";
+	file << "{[C5]";
+	if (col == C_W)
+		file << "[对手 B][阿尔法五子棋 W]";
+	else
+		file << "[阿尔法五子棋 B][对手 W]";
+
+	if (nowcol == C_W)
+		file << "[先手胜]";
+	else
+		file << "[后手胜]";
+	time_t t = time(nullptr);
+	tm *ft = localtime(&t);
+	file << "[" << ft->tm_year + 1900 << '.' << ft->tm_mon << '.' << ft->tm_mday << ' ';
+	file << " " << ft->tm_hour << ':' << ft->tm_min << "  合肥" << "]";
+	file << "[2018 CCGC]";
+	for (int i = 0; i < gamestep; i++) {
+		Coord c(history[i]);
+		file << ';';
+		if (i & 1) file << 'W';
+		else file << 'B';
+		file << '(' << (char)(c.x + 'A')<<',' << c.y + 1 << ')';
+	}
+	file << '}' << '\n';
+}
+
 void Game::runGameUser(Player &player1, int col)
 {
 	reset();
+	cls();
 	print(gameboard);
-	while (gameboard.count() < BLSIZE)
+	while (gamestep < BLSIZE)
 	{
 		Coord c;
+		gotoXY(0, BSIZE + 2);
+		if (nowcol == C_W) printf("○:");
+		else printf("●:");
 		if (nowcol == col)
-			c = player1.run(gameboard, col);
+		{
+			printf("Compter thinking...Do not click");
+			c = player1.run(gameboard, nowcol);
+			gotoXY(0, BSIZE + 3);
+			printf("(%d,%d):%f", c.x, c.y, player1.winrate);
+		}
 		else
-			c = getPlayerPos(gameboard);
+		{
+			printf("It's your turn                 ");
+			int cmd;
+			do {
+				cmd = getPlayerClick(c);
+			} while (cmd);
+		}
 		make_move(c);
-		print(gameboard);
+		print(gameboard, nowcol, c.p());
 		if (judgeWin(gameboard))
 			break;
-		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
-	if (gameboard.count() == BLSIZE) winner = 0;
+	if (gamestep == BLSIZE) winner = 0;
 	printWinner(winner);
+	saveSGF(col);
+	system("pause");
 }
 
 void Game::runGameUser2()
@@ -209,7 +299,6 @@ void Game::runGameUser2()
 					gameboard[i] = 0;
 		if (judgeWin(gameboard))
 			break;
-		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
 	if (gameboard.count() == BLSIZE) winner = 0;
@@ -245,7 +334,6 @@ void Game::runRecord(const vector<int> &moves)
 		make_move(c);
 		if (show_mode == 1) print(gameboard);
 		else if (show_mode == 0) std::cout << c.format() << ' ';
-		gamestep++;
 	}
 	int winner = nowcol % 2 + 1;
 	if (gamestep == BLSIZE) winner = 0;
@@ -376,5 +464,5 @@ void Game::runGomocup(Player &player)
 		else if (command == "END")
 			exit(0);
 	}
-	cout << "If you see this information, you should download a gomoku manager to run this program. Or you can modify Gmk0.config to change the mode. ";
+	cout << "If you see this information, you should download a gomoku manager to run this program. Or you can modify Gmk0.json to change the mode. ";
 }

@@ -89,8 +89,8 @@ private:
 	int cfg_temprature_moves;
 
 	BoardWeight policy;
-	float winrate;
 public:
+	float winrate;
 	Player(string file_network, 
 		int _playouts = 400,
 		float _puct=1.6, 
