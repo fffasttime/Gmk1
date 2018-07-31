@@ -73,6 +73,11 @@ void cls() {
 	for (int i = 0; i < 5000; i++)
 		putchar(' ');
 }
+void clline(int line) {
+	gotoXY(0, line);
+	for (int i = 0; i < 60; i++)
+		putchar(' ');
+}
 
 void print(Board &gameboard, int col, int lastmove)
 {

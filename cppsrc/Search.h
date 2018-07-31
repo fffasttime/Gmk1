@@ -12,6 +12,11 @@ typedef float Val;
 int randomSelect(const vector<float> &weight);
 int randomSelect(BoardWeight weight, int count);
 
+struct SearchInfo {
+	float winrate;
+	vector <std::tuple<int, float, int>> playout_rate_move;
+};
+
 class MCTS
 {
 public:
@@ -21,6 +26,7 @@ public:
 	float mcwin;
 	int stopflag;
 	clock_t starttime;
+	SearchInfo *searchlogger;
 private:
 	int playouts;
 	NN* network;
@@ -64,9 +70,9 @@ private:
 	bool getTimeLimit(int played);
 
 public:
-	MCTS(Board &_board, int _col, NN *_network, int _playouts);
+	MCTS(Board &_board, int _col, NN *_network, int _playouts, SearchInfo *si);
 	void solve(BoardWeight &result);
-	int solvePolicy(Val te, BoardWeight &policy, float &winrate);
+	int solvePolicy(Val te, BoardWeight &policy);
 	~MCTS()
 	{
 		delete[] tr;
@@ -78,7 +84,7 @@ public:
 
 class Player
 {
-private:
+public:
 	NN network;
 	int cfg_playouts;
 	float cfg_puct;
@@ -90,7 +96,7 @@ private:
 
 	BoardWeight policy;
 public:
-	float winrate;
+	SearchInfo searchlogger;
 	Player(string file_network, 
 		int _playouts = 400,
 		float _puct=1.6, 
@@ -116,9 +122,5 @@ public:
 	const BoardWeight& getlastPolicy()
 	{
 		return policy;
-	}
-	float getlastValue()
-	{
-		return winrate;
 	}
 };

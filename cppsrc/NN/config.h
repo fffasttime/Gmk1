@@ -92,11 +92,13 @@ using net_t = float;
     #pragma warning(disable : 4996)
 #endif /* VC8+ */
 
-const int BOARD_SIZE = 15;
+#include "../Common.h"
+
+const int BOARD_SIZE = BSIZE;
 const int RESIDUAL_BLOCKS = 6;
 const int RESIDUAL_FILTERS = 96;
 const int FULL_CONNECT_SIZE = 128;
-const int ACTION_SPACE_N = 225;
+const int ACTION_SPACE_N = BLSIZE;
 const int INPUT_CHANNELS = 3;
 
 #endif

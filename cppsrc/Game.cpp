@@ -169,7 +169,7 @@ void Game::runGame_selfplay(Player &player)
 		Coord c = player.run(gameboard, nowcol);
 		make_move(c);
 		policy.push_back(player.getlastPolicy());
-		winrate.push_back(player.getlastValue());
+		winrate.push_back(player.searchlogger.winrate);
 		if (show_mode == 1) print(gameboard);
 		else if (show_mode == 0) std::cout << c.format() <<' ';
 		if (judgeWin(gameboard))
@@ -241,8 +241,231 @@ void Game::saveSGF(int col) {
 	file << '}' << '\n';
 }
 
+int getUserSwap() {
+	gotoXY(0, BSIZE+2);
+	printf("[交换]    [不交换]");
+	while (1){
+
+		auto mloc = getCurClick();
+		if (mloc.x == BSIZE+2 && mloc.y <= 6)  
+			return 1;
+		else if (mloc.x==BSIZE+2 && mloc.y>=11 && mloc.y<=18)
+			return 0;
+	}
+}
+
+vector<int> getBlackPoints(Board &gameboard, int points) 
+{
+	clline(BSIZE + 2);
+	gotoXY(0, BSIZE+2);
+	printf("[确定]   要求打点数: %d", points);
+	Board setted;
+	setted.clear();
+	int count=0;
+	while (1) {
+		auto mloc = getCurClick();
+		auto sp = MlocToPloc(mloc);
+		if (inBorder(sp) && !gameboard(sp)) 
+		{
+			gotoXY(sp.y * 2, sp.x);
+			if (setted[sp.p()]) {
+				count--;
+				printf("┼");
+			}
+			else {
+				count++;
+				printf("■");
+			}
+			setted[sp.p()] = !setted[sp.p()];
+		}
+		if (mloc.x == BSIZE + 2 && mloc.y <= 6 && count==points)
+			break;
+	}
+	std::vector<int> result;
+	for (int i = 0; i < BLSIZE; i++)
+		if (setted[i])
+			result.push_back(i);
+	return result;
+}
+
+void Game::runGameUser_Yuko(Player &player1, int col)
+{
+	int point = 0;
+	//step 1,2,3
+	if (col == 1) {
+		reset();
+		cls();
+		print(gameboard);
+		make_move(Coord::center);
+		int straight = rand() % 2;
+		if (straight) {
+			make_move(Coord::center + Coord(1,0));
+			int rd = rand() % 3;
+			static const Coord u[3] = { {0,1} ,{1,1},{-1,1} };
+			static const int points[3] = { 3,4,3 };
+			point = points[rd];
+			make_move(Coord::center + u[rd]);
+		}
+		else {
+			make_move(Coord::center + Coord(1, 1));
+			int rd = rand() % 4;
+			static const Coord u[4] = { { 0,1 } ,{ 0,-1 },{ -1,1 },{0,2} };
+			static const int points[4] = { 3,3,4,3 };
+			point = points[rd];
+			make_move(Coord::center + u[rd]);
+
+		}
+		print(gameboard, nowcol);
+		clline(BSIZE+2);
+		gotoXY(22, BSIZE+2);
+		printf("打点数: %d", point);
+		int sw = getUserSwap();
+		if (sw) col = col % 2 + 1;
+	}
+	else {
+		std::cout << "输入打点数:";
+		std::cin >> point;
+		reset();
+		cls();
+		print(gameboard);
+
+		gotoXY(0, BSIZE + 2);
+		printf("点击前三手");
+		while (gamestep < 3) {
+			int cmd;
+			Coord c;
+			do {
+				cmd = getPlayerClick(c);
+			} while (cmd);
+			make_move(c);
+			print(gameboard, nowcol, c.p());
+		}
+		int sw;
+		if (point < 3 && (Coord(history[2]) - Coord(history[1])).lenth() < 5)
+			sw = 1;
+		else
+			sw = 0;
+		if (sw) col = col % 2 + 1;
+	}
+	ASSERT(gamestep == 3);
+
+	//step 4,5
+	if (col == nowcol) {
+		clline(BSIZE + 2);
+		gotoXY(0, BSIZE + 2);
+		printf("○:Computer thinking...Do not click");
+		Coord c = player1.run(gameboard, nowcol);
+		make_move(c);
+		print(gameboard, nowcol, c.p());
+
+		vector<int> p = getBlackPoints(gameboard, point);
+
+		clline(BSIZE + 2);
+		gotoXY(0, BSIZE + 2);
+		printf("■:Computer selecting...Do not click");
+		int cp0 = player1.cfg_playouts;
+		player1.cfg_playouts /= point;
+		float mint=100; int minmove;
+		for (auto move : p) {
+			make_move(Coord(move));
+			player1.run(gameboard, nowcol);
+			if (player1.searchlogger.winrate < mint) {
+				mint = player1.searchlogger.winrate;
+				minmove = move;
+			}
+			unmake_move();
+		}
+		player1.cfg_playouts = cp0;
+		make_move(minmove);
+		print(gameboard, nowcol, minmove);
+	}
+	else 
+	{
+		clline(BSIZE + 2);
+		gotoXY(0, BSIZE + 2);
+		printf("○:Your turn");
+		Coord c;
+		int cmd;
+		do {
+			cmd = getPlayerClick(c);
+		} while (cmd);
+		make_move(c);
+		print(gameboard, nowcol, c.p());
+
+		clline(BSIZE + 2);
+		gotoXY(0, BSIZE + 2);
+		printf("■:Computer selecting...Do not click");
+		c = player1.run(gameboard, nowcol);
+
+		Board selected;
+		selected.clear();
+		for (int i = 0; i < point; i++) {
+			gotoXY(0, BSIZE + i + 2);
+			int po; float wr; int move;
+			std::tie(po, wr, move) = player1.searchlogger.playout_rate_move[i];
+			c = Coord(move);
+			std::cout << c.toString() << ' ';
+			printf("%4d ", po);
+			printf("%.3f", wr);
+			gotoXY(c.y * 2, c.x);
+			printf("■");
+			selected[move] = 1;
+		}
+		while (1) {
+			auto mloc = getCurClick();
+			c = MlocToPloc(mloc);
+			if (inBorder(c) && selected(c))
+				break;
+		}
+		make_move(c);
+		print(gameboard, nowcol, c.p());
+	}
+
+	//original game
+	while (gamestep < BLSIZE)
+	{
+		Coord c;
+		clline(BSIZE + 2);
+		gotoXY(0, BSIZE + 2);
+		if (nowcol == C_W) printf("○:");
+		else printf("●:");
+		if (nowcol == col)
+		{
+			printf("Compter thinking...Do not click");
+			c = player1.run(gameboard, nowcol);
+			clline(BSIZE + 3);
+			gotoXY(0, BSIZE + 3);
+			printf("(%d,%d):%f", c.x, c.y, player1.searchlogger.winrate);
+		}
+		else
+		{
+			printf("It's your turn                 ");
+			int cmd;
+			do {
+				cmd = getPlayerClick(c);
+			} while (cmd);
+		}
+		make_move(c);
+		print(gameboard, nowcol, c.p());
+		if (judgeWin(gameboard))
+			break;
+	}
+	int winner = nowcol % 2 + 1;
+	if (gamestep == BLSIZE) winner = 0;
+	printWinner(winner);
+	saveSGF(col);
+	system("pause");
+}
+
 void Game::runGameUser(Player &player1, int col)
 {
+#ifdef RULE_RENJU
+	if (cfg_special_rule == 1)
+	{ 
+		runGameUser_Yuko(player1, col);
+		return;
+	}
+#endif
 	reset();
 	cls();
 	print(gameboard);
@@ -257,7 +480,7 @@ void Game::runGameUser(Player &player1, int col)
 			printf("Compter thinking...Do not click");
 			c = player1.run(gameboard, nowcol);
 			gotoXY(0, BSIZE + 3);
-			printf("(%d,%d):%f", c.x, c.y, player1.winrate);
+			printf("(%d,%d):%f", c.x, c.y, player1.searchlogger.winrate);
 		}
 		else
 		{
@@ -288,15 +511,7 @@ void Game::runGameUser2()
 		Coord c;
 		c = getPlayerPos(gameboard);
 		make_move(c);
-		if (nowcol == C_B)
-			for (int i = 0; i < BLSIZE; i++)
-				if (gameboard[i] == C_E && Prior::cell(i / BSIZE + 4, i%BSIZE + 4).forbidden)
-					gameboard[i] = 3;
 		print(gameboard);
-		if (nowcol == C_B)
-			for (int i = 0; i < BLSIZE; i++)
-				if (gameboard[i] == 3)
-					gameboard[i] = 0;
 		if (judgeWin(gameboard))
 			break;
 	}
@@ -366,8 +581,8 @@ void Game::runGomocup(Player &player)
 
 		if (command == "START") {
 			int size; cin >> size;
-			if (size != 15 )
-				cout << "ERROR only support 15*15 board" << endl;
+			if (size != BSIZE )
+				cout << "ERROR only support "<<BSIZE<<"*"<<BSIZE<<" board" << endl;
 			else
 			{
 				reset();

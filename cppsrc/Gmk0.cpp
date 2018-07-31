@@ -115,7 +115,7 @@ int getOptionCmdLine(int argc, char ** argv)
 		("seed,s", po::value(&seed)->default_value(time(NULL)), "random seed")
 		("selfplaycount,c", po::value(&selfplay_count)->default_value(2048), "count of selfplay games")
 		("puct", po::value(&puct)->default_value(1.4f), "uct policy constant")
-		("swap3", po::value(&cfg_swap3)->default_value(true), "use swap3")
+		("swap3", po::value(&cfg_swap3)->default_value(false), "use swap3")
 		("logs", po::value(&cfg_loglevel)->default_value(0), "log level, 0 for close")
 		("logfile", po::value(&logfilename)->default_value("Gmk1.log"), "log filename")
 		;
@@ -153,9 +153,10 @@ int getOptionJson()
 		seed = root.get<int>("seed", time(NULL));
 		selfplay_count = root.get<int>("selfplaycount", 2048);
 		puct = root.get<float>("puct", 1.4f);
-		cfg_swap3 = root.get<bool>("swap3", true);
+		cfg_swap3 = root.get<bool>("swap3", false);
 		cfg_loglevel = root.get<int>("logs", 0);
 		logfilename = root.get<string>("logfile", "Gmk1.log");
+		cfg_special_rule = root.get<int>("specialrule", 0);
 	}
 	catch (std::exception &err)
 	{

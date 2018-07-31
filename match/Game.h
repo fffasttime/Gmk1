@@ -29,8 +29,8 @@ public:
 			exit(1);
 		}
 		proc = new bp::child(exec, bp::std_out > pipe_get, bp::std_in < pipe_put);
-		pipe_put << "START 15" << endl;
-		if (cfg_show_information) std::cout << "match: START 15" << " ->" << name << endl;
+		pipe_put << "START "<< BSIZE << endl;
+		if (cfg_show_information) std::cout << "match: START "<<BSIZE << " ->" << name << endl;
 		string s; pipe_get >> s;
 		if (cfg_show_information) std::cout << name <<": " << s << endl;
 		if (s != "OK")

@@ -14,6 +14,7 @@ Coord getCurClick();
 Coord getPlayerPos(Board &gameboard);
 
 void cls();
+void clline(int line);
 void gotoXY(short x, short y);
 
 #endif

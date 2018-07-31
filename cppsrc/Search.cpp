@@ -54,12 +54,13 @@ void MCTS::addNoise(int cur, Val epsilon, Val alpha)
 	}
 }
 
-MCTS::MCTS(Board &_board, int _col, NN *_network, int _playouts):boardhash(_board)
+MCTS::MCTS(Board &_board, int _col, NN *_network, int _playouts, SearchInfo *si):boardhash(_board)
 {
 	board = _board;
 	nowcol = _col;
 	network = _network;
 	playouts = _playouts;
+	searchlogger = si;
 	tr = new Node[(playouts+2)*BLSIZE];
 	chlist = new Board[playouts + 2];
 	ravelist = new BoardWeight[playouts + 2];
@@ -223,29 +224,38 @@ void MCTS::solve(BoardWeight &result)
 		if (getTimeLimit(i)) stopflag = true;
 		played = i;
 	}
+
+//logger
 	mcwin = -tr[root].sumv / tr[root].cnt;
+	searchlogger->winrate = mcwin;
 	debug_s << "mc win: " << vresultToWinrate(mcwin) << '\n' << "counter:" << counter << '\n'
 		<< "time: " << clock() - starttime << "  playout: " << played << '\n';
-	if (cfg_loglevel>=2)
-	{
 		debug_s << board2showString(board, true);
-		vector<std::pair<int, int>> pvlist;
-		for (int i = 0; i < BLSIZE; i++)
-		{
-			int ch = (*tr[root].ch)[i];
-			if (ch && tr[ch].cnt)
-				pvlist.push_back({ tr[ch].cnt, ch });
-		}
-		sort(pvlist.begin(), pvlist.end());
-		for (int i = 0; i < std::min(10, (int)pvlist.size());i++)
-		{
-			int v = pvlist[pvlist.size()-i-1].second;
+
+	vector<std::pair<int, int>> pvlist;
+	for (int i = 0; i < BLSIZE; i++)
+	{
+		int ch = (*tr[root].ch)[i];
+		if (ch && tr[ch].cnt)
+			pvlist.push_back({ tr[ch].cnt, ch });
+	}
+	sort(pvlist.begin(), pvlist.end(), [](const auto &a, const auto &b) {return a.first > b.first; });
+
+	searchlogger->playout_rate_move.clear();
+	for (auto &it : pvlist)
+		searchlogger->playout_rate_move.push_back({it.first,tr[it.second].sumv/tr[it.second].cnt, tr[it.second].move});
+
+	if (cfg_loglevel>=2){
+		for (int i = 0; i < std::min(10, (int)pvlist.size());i++){
+			int v = pvlist[i].second;
 			debug_s << std::setw(3) << Coord(tr[v].move).format()
 				 << "  po:" << std::setw(5)<< tr[v].cnt
 				<< " " << vresultToWinrate(tr[v].sumv/tr[v].cnt) << '\n';
 		}
 	}
 	logRefrsh();
+
+//return
 	result.clear();
 	for (int i = 0; i < BLSIZE; i++)
 	{
@@ -345,10 +355,9 @@ backprop:
 	}
 }
 
-int MCTS::solvePolicy(Val te, BoardWeight &policy, float &winrate)
+int MCTS::solvePolicy(Val te, BoardWeight &policy)
 {
 	solve(policy);
-	winrate = -tr[0].sumv / tr[0].cnt;
 	auto tpolicy = policy;
 
 	{
@@ -394,7 +403,8 @@ Coord Player::randomOpening(Board gameboard)
 {
 	if (gameboard.count() == 0)
 	{
-		return { 2+rand()%11, 2 + rand() % 11 };
+		const int dis = 2;
+		return { dis+rand()%(BSIZE-dis*2), dis + rand() % (BSIZE - dis * 2) };
 	}
 	else if (gameboard.count() == 1)
 	{
@@ -415,14 +425,16 @@ Coord Player::randomOpening(Board gameboard)
 		BoardWeight po;
 		po.clear();
 		float sum = 0;
-		for (int i = x-2; i <= x+2; i++)
-			for (int j = y-2; j <= y+2; j++)
+	#ifdef RULE_RENJU
+		const int r2 = 2;
+	#else
+		const int r2 = 3;
+	#endif
+		for (int i = x-3; i <= x+3; i++)
+			for (int j = y-3; j <= y+3; j++)
 			{
-				if (gameboard(i, j) == 0)
-					if (i >= x-1 && i <= x+1 && j >= y-1 && j <= y+1)
-						po(i, j) = 1, sum+=1;
-					else
-						po(i, j) = 1, sum+=1;
+				if (inBorder(i,j) && gameboard(i, j) == 0)
+					po(i, j) = 1, sum+=1;
 			}
 		for (int i = 0; i < BLSIZE; i++)
 			po[i] /= sum;
@@ -432,15 +444,15 @@ Coord Player::randomOpening(Board gameboard)
 
 Coord Player::run(Board &gameboard, int nowcol)
 {
-	MCTS mcts(gameboard, nowcol, &network, cfg_playouts);
+	MCTS mcts(gameboard, nowcol, &network, cfg_playouts, &searchlogger);
 	mcts.add_noise = cfg_add_noise;
 	mcts.UCBC = cfg_puct;
 	mcts.use_transform = cfg_use_transform;
 	Coord ret;
 	if (gameboard.count()>=cfg_temprature_moves)
-		ret = Coord(mcts.solvePolicy(cfg_temprature2, policy, winrate));
+		ret = Coord(mcts.solvePolicy(cfg_temprature2, policy));
 	else
-		ret = Coord(mcts.solvePolicy(cfg_temprature1, policy, winrate));
+		ret = Coord(mcts.solvePolicy(cfg_temprature1, policy));
 	if (gameboard.count() == 1 || gameboard.count()==2) return randomOpening(gameboard);
 	if (cfg_swap3 && gameboard.count() == 3 && gameboard.countv(2)==1 && mcts.mcwin<0)
 		return Coord(BLSIZE);

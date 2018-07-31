@@ -11,13 +11,14 @@ bool inBorder(int x, int y)
 {
 	return x >= 0 && y >= 0 && x < BSIZE && y < BSIZE;
 }
+
 template <>
 void BoardArray<int>::clear()
 {
 	memset(m, 0, sizeof(m));
 }
 template <>
-void BoardArray<int, 23>::clear()
+void BoardArray<int, BSIZE + 8>::clear()
 {
 	memset(m, 0, sizeof(m));
 }
