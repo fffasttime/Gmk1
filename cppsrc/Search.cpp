@@ -37,6 +37,10 @@ int randomSelect(BoardWeight weight, int count)
 
 void MCTS::addNoise(int cur, Val epsilon, Val alpha) 
 {
+#ifdef RULE_RENJU
+	if (cfg_special_rule == 1 && cur == 0 && board.count() == 4 && nowcol == 1)
+		return;
+#endif
 	static std::default_random_engine e;
 	std::vector<Val> dirichlet;
 	std::gamma_distribution<float> gamma(alpha, 1.0f);
@@ -119,23 +123,34 @@ int MCTS::selection(int cur)
 		return cur;
 	int maxp = 0;
 	Val maxv = -FLOAT_INF;
+	float ucbc = UCBC;
+	bool special_expanse = 0;
+#ifdef RULE_RENJU
+	if (cfg_special_rule == 1 && cur == 0 && board.count() == 4 && nowcol == 1)
+		special_expanse = 1;
+#endif
 	for (int i=0;i<BLSIZE;i++)
 	{
 		int ch = (*tr[cur].ch)[i];
 		if (!ch) continue;
 		Val ucb;
-		Val var_ele = UCBC*tr[ch].policy*sqrtf((Val)tr[cur].cnt) / (1 + tr[ch].cnt);
+		Val var_ele = ucbc*tr[ch].policy*sqrtf((Val)tr[cur].cnt) / (1 + tr[ch].cnt);
 
 		//rescale range
 		Val father_val = (-tr[cur].sumv / tr[cur].cnt + 1.0f) / 1.1f - 1.0f;
 		static const Val father_decay = 0.5f;
 		Val frac1 = powf(father_decay, tr[ch].cnt);
+#if 0   //since RAVE got worse, disabled
 		Val rave_cnt = (Val)(*tr[cur].cnt_rave)[i];
 		Val rave_win = (*tr[cur].sum_rave)[i] / rave_cnt;
-		//Val rave_beta = rave_cnt /(rave_cnt + tr[ch].cnt + 4*rave_cnt*tr[ch].cnt);
+		Val rave_beta = rave_cnt /(rave_cnt + tr[ch].cnt + 4*rave_cnt*tr[ch].cnt);
+#else
+		Val rave_cnt = 0.0f;
+		Val rave_win = 0.0f;
 		Val rave_beta = 0.0f;
+#endif
 		if (tr[ch].is_end) frac1 = 0, rave_beta = 0;
-
+		
 		if (tr[ch].cnt == 0)
 		{ 
 			if (rave_cnt > 0.1f)
@@ -148,6 +163,8 @@ int MCTS::selection(int cur)
 			rave_beta /= 2;
 			ucb = rave_beta * rave_win+(1-rave_beta)*(frac1 * father_val + (1 - frac1)*tr[ch].sumv / tr[ch].cnt) + var_ele; 
 		}
+		if (special_expanse && tr[ch].cnt>=150)
+			ucb = -100;
 		if (ucb > maxv)
 		{
 			maxv = ucb;

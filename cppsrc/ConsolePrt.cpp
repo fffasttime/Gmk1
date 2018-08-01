@@ -115,7 +115,4 @@ void print(Board &gameboard, int col, int lastmove)
 			printf("¡÷");
 	}
 	printf("\n");
-	gotoXY(0, BSIZE + 1);
-	printf("[³·Ïú]  [ÖØ×ö]");
-	logRefrsh();
 }

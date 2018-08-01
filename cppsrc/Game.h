@@ -24,7 +24,7 @@ public:
 	void runGameUser_Yuko(Player &player1, int col);
 	void runGameUser2();
 	void runGame_selfplay(Player &player);
-	void saveSGF(int col);
+	void saveSGF(int col, int winner);
 	void runRecord(const std::vector<int> &moves);
 	void runFromFile(string filename);
 	void runGomocup(Player & player);

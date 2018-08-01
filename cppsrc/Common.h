@@ -30,7 +30,8 @@ extern bool cfg_timelim;
 extern int timeout_turn;
 extern int timeout_left;
 extern int cfg_loglevel;
-extern int cfg_special_rule;
+extern int cfg_special_rule; 
+extern string exepath;
 
 extern stringstream debug_s;
 

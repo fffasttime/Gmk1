@@ -13,7 +13,7 @@
 #include <boost/property_tree/ptree.hpp>  
 #include <boost/property_tree/json_parser.hpp>  
 namespace po = boost::program_options;
-string exepath,logfilename;
+string logfilename;
 string network_file, output_file, str_mode, str_display;
 int playout, seed, selfplay_count;
 float puct;
@@ -85,7 +85,7 @@ int run()
 	else if (mode == 2 || mode == 3)
 	{
 		if (cfg_loglevel) logOpen(exepath + "/" + logfilename);
-		Player player1(network_file, playout, puct, true, true, 0.5f);
+		Player player1(network_file, playout, puct, true, true, 0.0f);
 		minit();
 		game.runGameUser(player1, mode - 1);
 		mexit();

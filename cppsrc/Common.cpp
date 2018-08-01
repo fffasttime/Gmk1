@@ -6,7 +6,8 @@ bool cfg_timelim = false;
 int timeout_turn;
 int timeout_left;
 int cfg_loglevel;
-int cfg_special_rule;
+int cfg_special_rule; 
+string exepath;
 
 const Coord Coord::center = Coord(BSIZE / 2, BSIZE / 2);
 

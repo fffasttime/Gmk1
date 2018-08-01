@@ -89,7 +89,7 @@ void Game::make_move(Coord pos)
 {
 	if (pos.p() == BLSIZE) 
 		gameboard.swap();
-	else
+	else if (inBorder(pos))
 		gameboard(pos) = nowcol;
 
 	if (gamestep >= history.size())
@@ -184,6 +184,10 @@ void Game::runGame_selfplay(Player &player)
 }
 
 int Game::getPlayerClick(Coord &posresult) {
+	clline(BSIZE + 1);
+	gotoXY(0, BSIZE + 1);
+	printf("[撤销]  [重做]      [弃权]   [退出]");
+	logRefrsh();
 	while (1) {
 		auto mloc = getCurClick();
 		auto sp = MlocToPloc(mloc);
@@ -210,11 +214,35 @@ int Game::getPlayerClick(Coord &posresult) {
 			}
 			return 1;
 		}
+		//pass
+		if (mloc.x == BSIZE + 1 && mloc.y >= 20 && mloc.y <= 25) {
+			posresult = Coord(0,-1);
+			return 0;
+		}
+		//exit
+		if (mloc.x == BSIZE + 1 && mloc.y >= 29 && mloc.y <= 34) {
+			clline(BSIZE + 5);
+			gotoXY(0, BSIZE + 5);
+			printf("[认输]    [认和]    [认赢]");
+			auto mloc = getCurClick();
+			posresult = Coord(0, -1);
+
+			if (mloc.x == BSIZE + 5 && mloc.y >= 0 && mloc.y <= 5)
+				return 11;
+			else if (mloc.x == BSIZE + 5 && mloc.y >= 0 && mloc.y <= 5)
+				return 12;
+			else if (mloc.x == BSIZE + 5 && mloc.y >= 0 && mloc.y <= 5)
+				return 13;
+			else
+				clline(BSIZE + 5);
+			
+			return 1;
+		}
 	}
 }
 
-void Game::saveSGF(int col) {
-	ofstream file("result.txt", std::ios::app);
+void Game::saveSGF(int col, int winner) {
+	ofstream file(exepath+"/result.txt", std::ios::app);
 	file << "\n";
 	file << "{[C5]";
 	if (col == C_W)
@@ -222,10 +250,12 @@ void Game::saveSGF(int col) {
 	else
 		file << "[阿尔法五子棋 B][对手 W]";
 
-	if (nowcol == C_W)
+	if (winner == C_B)
 		file << "[先手胜]";
-	else
+	else if (winner == C_W)
 		file << "[后手胜]";
+	else
+		file << "[平局]";
 	time_t t = time(nullptr);
 	tm *ft = localtime(&t);
 	file << "[" << ft->tm_year + 1900 << '.' << ft->tm_mon << '.' << ft->tm_mday << ' ';
@@ -236,9 +266,13 @@ void Game::saveSGF(int col) {
 		file << ';';
 		if (i & 1) file << 'W';
 		else file << 'B';
-		file << '(' << (char)(c.x + 'A')<<',' << c.y + 1 << ')';
+		if (inBorder(c))
+			file << '(' << (char)(c.x + 'A') << ',' << c.y + 1 << ')';
+		else
+			file << "(pass)";
 	}
 	file << '}' << '\n';
+	file.close();
 }
 
 int getUserSwap() {
@@ -302,7 +336,7 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 			make_move(Coord::center + Coord(1,0));
 			int rd = rand() % 3;
 			static const Coord u[3] = { {0,1} ,{1,1},{-1,1} };
-			static const int points[3] = { 3,4,3 };
+			static const int points[3] = { 4,5,4 };
 			point = points[rd];
 			make_move(Coord::center + u[rd]);
 		}
@@ -310,7 +344,7 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 			make_move(Coord::center + Coord(1, 1));
 			int rd = rand() % 4;
 			static const Coord u[4] = { { 0,1 } ,{ 0,-1 },{ -1,1 },{0,2} };
-			static const int points[4] = { 3,3,4,3 };
+			static const int points[4] = { 4,4,5,4 };
 			point = points[rd];
 			make_move(Coord::center + u[rd]);
 
@@ -343,6 +377,10 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 		int sw;
 		if (point < 3 && (Coord(history[2]) - Coord(history[1])).lenth() < 5)
 			sw = 1;
+		else if (point < 4 && (Coord(history[2]) - Coord::center).lenth()+(Coord(history[1]) - Coord::center).lenth()<4)
+			sw = 1;
+		else if (point < 5 && (Coord(history[2]) - Coord::center).lenth()+(Coord(history[1]) - Coord::center).lenth()<3)
+			sw = 1;
 		else
 			sw = 0;
 		if (sw) col = col % 2 + 1;
@@ -365,19 +403,22 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 		printf("■:Computer selecting...Do not click");
 		int cp0 = player1.cfg_playouts;
 		player1.cfg_playouts /= point;
-		float mint=100; int minmove;
-		for (auto move : p) {
-			make_move(Coord(move));
+		player1.cfg_playouts *= 1.5;
+		float maxt=-100; int maxmove;
+		for (size_t i = 0; i < p.size();i++) {
+			make_move(Coord(p[i]));
 			player1.run(gameboard, nowcol);
-			if (player1.searchlogger.winrate < mint) {
-				mint = player1.searchlogger.winrate;
-				minmove = move;
+			gotoXY(0, BSIZE + i + 2);
+			std::cout << Coord(p[i]).toString() << ' ' << player1.searchlogger.winrate;
+			if (player1.searchlogger.winrate > maxt) {
+				maxt = player1.searchlogger.winrate;
+				maxmove = p[i];
 			}
 			unmake_move();
 		}
 		player1.cfg_playouts = cp0;
-		make_move(minmove);
-		print(gameboard, nowcol, minmove);
+		make_move(maxmove);
+		print(gameboard, nowcol, maxmove);
 	}
 	else 
 	{
@@ -394,12 +435,19 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 
 		clline(BSIZE + 2);
 		gotoXY(0, BSIZE + 2);
+		int cp0 = player1.cfg_playouts;
+		player1.cfg_playouts *= 2;
 		printf("■:Computer selecting...Do not click");
 		c = player1.run(gameboard, nowcol);
-
+		player1.cfg_playouts = cp0;
 		Board selected;
 		selected.clear();
-		for (int i = 0; i < point; i++) {
+		clline(BSIZE+1);
+		gotoXY(0, BSIZE + 1);
+		printf("打点数: %d", point);
+		std::sort(player1.searchlogger.playout_rate_move.begin(), player1.searchlogger.playout_rate_move.end(),
+			[](auto &a, auto &b) {return std::get<1>(a) > std::get<1>(b); });
+		for (int i = 0; i < std::min(point * 2, (int)player1.searchlogger.playout_rate_move.size()); i++) {
 			gotoXY(0, BSIZE + i + 2);
 			int po; float wr; int move;
 			std::tie(po, wr, move) = player1.searchlogger.playout_rate_move[i];
@@ -408,7 +456,7 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 			printf("%4d ", po);
 			printf("%.3f", wr);
 			gotoXY(c.y * 2, c.x);
-			printf("■");
+			printf(" %d", i+1);
 			selected[move] = 1;
 		}
 		while (1) {
@@ -420,9 +468,9 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 		make_move(c);
 		print(gameboard, nowcol, c.p());
 	}
-
+	int winner = -1;
 	//original game
-	while (gamestep < BLSIZE)
+	while (gameboard.count() < BLSIZE)
 	{
 		Coord c;
 		clline(BSIZE + 2);
@@ -443,17 +491,27 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 			int cmd;
 			do {
 				cmd = getPlayerClick(c);
-			} while (cmd);
+			} while (cmd==1);
+			if (cmd >= 11 && cmd <= 13) {
+				if (cmd == 11)
+					winner = nowcol;
+				else if (cmd==13)
+					winner = nowcol % 2 + 1;
+				else
+					winner = 0;
+				break;
+			}
 		}
 		make_move(c);
 		print(gameboard, nowcol, c.p());
 		if (judgeWin(gameboard))
 			break;
 	}
-	int winner = nowcol % 2 + 1;
+	if (winner=-1)
+		winner = nowcol % 2 + 1;
 	if (gamestep == BLSIZE) winner = 0;
 	printWinner(winner);
-	saveSGF(col);
+	saveSGF(col,winner);
 	system("pause");
 }
 
@@ -498,7 +556,6 @@ void Game::runGameUser(Player &player1, int col)
 	int winner = nowcol % 2 + 1;
 	if (gamestep == BLSIZE) winner = 0;
 	printWinner(winner);
-	saveSGF(col);
 	system("pause");
 }
 
