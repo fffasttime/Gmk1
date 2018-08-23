@@ -10,12 +10,12 @@ using std::ofstream;
 using std::stringstream;
 using std::string;
 
-#define BSIZE (15)
+#define BSIZE (19)
 #define BLSIZE (BSIZE * BSIZE)
 #define FLOAT_INF (1e10)
 
-#define RULE_RENJU
-//#define RULE_GOMOKU
+//#define RULE_RENJU
+#define RULE_GOMOKU
 
 #ifdef RULE_RENJU
 #define Prior PriorRenju

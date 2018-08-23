@@ -163,7 +163,7 @@ int MCTS::selection(int cur)
 			rave_beta /= 2;
 			ucb = rave_beta * rave_win+(1-rave_beta)*(frac1 * father_val + (1 - frac1)*tr[ch].sumv / tr[ch].cnt) + var_ele; 
 		}
-		if (special_expanse && tr[ch].cnt>=150)
+		if (special_expanse && tr[ch].cnt>=250)
 			ucb = -100;
 		if (ucb > maxv)
 		{
@@ -470,6 +470,10 @@ Coord Player::run(Board &gameboard, int nowcol)
 		ret = Coord(mcts.solvePolicy(cfg_temprature2, policy));
 	else
 		ret = Coord(mcts.solvePolicy(cfg_temprature1, policy));
+	if (cfg_use_openings) {
+		int x = find_in_openingsBook(gameboard);
+		if (x != -1) return Coord(openingsBook[x].moves[rand()%openingsBook[x].moves.size()]);
+	}
 	if (gameboard.count() == 1 || gameboard.count()==2) return randomOpening(gameboard);
 	if (cfg_swap3 && gameboard.count() == 3 && gameboard.countv(2)==1 && mcts.mcwin<0)
 		return Coord(BLSIZE);

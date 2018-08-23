@@ -148,3 +148,67 @@ void BoardHasher::update(int pos, int old, int target)
 	num ^= zobirst_table[old][pos];
 	num ^= zobirst_table[target][pos];
 }
+
+
+std::vector<BoardAction> openingsBook;
+bool cfg_use_openings = false;
+
+int find_in_openingsBook(const Board &board) {
+	int i = 0;
+	for (auto &b : openingsBook) {
+		if (memcmp(&board, &b.board, sizeof(board))==0)
+			return i;
+		i++;
+	}
+	return -1;
+}
+
+int load_openingsBook() {
+	std::ifstream fin(exepath+"/openings.txt");
+	int count = 0;
+	if (fin.is_open()) {
+		while (!fin.eof()){
+			Board board; board.clear(); int nowcol = C_B;
+			string line;
+			std::getline(fin, line);
+			std::istringstream ss(line);
+			std::vector<int> numbers;
+			while (!ss.eof()){
+				string s;
+				std::getline(ss, s, ',');
+				std::istringstream ns(s);
+				int num; ns >> num;
+				numbers.push_back(num);
+			}
+			if (numbers.size() % 2) {
+				std::cout << "error: Bad openings book\n";
+				exit(1);
+			}
+			if (numbers.empty()) continue;
+
+			for (size_t i = 0; i < numbers.size() / 2; i++) {
+				auto p = Coord(numbers[i * 2], numbers[i * 2 + 1]) + Coord::center;
+				if (!inBorder(p)) {
+					std::cout << "error: Bad openings book\n";
+					exit(1);
+				}
+				int x = find_in_openingsBook(board);
+				if (x == -1)
+					openingsBook.push_back({ board, std::vector<int>{p.p()} });
+				else
+					openingsBook[x].moves.push_back(p.p());
+				board[p.p()] = nowcol;
+				nowcol = nowcol % 2 + 1;
+			}
+			count++;
+		}
+	}
+	if (!openingsBook.empty())
+		cfg_use_openings = 1;
+	if (cfg_loglevel) {
+		debug_s << count << " openings loaded\n";
+		logRefrsh();
+	}
+	return cfg_use_openings;
+}
+

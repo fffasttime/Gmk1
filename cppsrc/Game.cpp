@@ -108,7 +108,7 @@ void Game::unmake_move()
 	gamestep--;
 	if (history[gamestep] == BLSIZE)
 		gameboard.swap();
-	else
+	else if (inBorder(history[gamestep]))
 		gameboard[history[gamestep]] = 0;
 
 	nowcol = nowcol % 2 + 1;
@@ -229,9 +229,9 @@ int Game::getPlayerClick(Coord &posresult) {
 
 			if (mloc.x == BSIZE + 5 && mloc.y >= 0 && mloc.y <= 5)
 				return 11;
-			else if (mloc.x == BSIZE + 5 && mloc.y >= 0 && mloc.y <= 5)
+			else if (mloc.x == BSIZE + 5 && mloc.y >= 10 && mloc.y <= 15)
 				return 12;
-			else if (mloc.x == BSIZE + 5 && mloc.y >= 0 && mloc.y <= 5)
+			else if (mloc.x == BSIZE + 5 && mloc.y >= 20 && mloc.y <= 25)
 				return 13;
 			else
 				clline(BSIZE + 5);
@@ -242,7 +242,30 @@ int Game::getPlayerClick(Coord &posresult) {
 }
 
 void Game::saveSGF(int col, int winner) {
-	ofstream file(exepath+"/result.txt", std::ios::app);
+	stringstream ss;
+	ss << exepath << "/";
+	ss << "C5-";
+	if (col == C_B)
+		ss << "AlphaGomoku B vs 对方队伍 W-";
+	else
+		ss << "对方队伍 B vs AlphaGomoku W-";
+	if (winner == C_B)
+		ss << "先手胜";
+	else
+		ss << "后手胜";
+	time_t t = time(nullptr);
+	tm *ft = localtime(&t);
+	ss << ft->tm_year + 1900 <<
+		std::setw(2) << std::setfill('0') << ft->tm_mon <<
+		std::setw(2) << std::setfill('0') << ft->tm_mday <<
+		std::setw(2) << std::setfill('0') << ft->tm_hour <<
+		std::setw(2) << std::setfill('0') << ft->tm_min;
+	ss << "合肥-CCGC 2018";
+	ss << ".txt";
+	string filename;
+	std::getline(ss, filename);
+	ofstream file(filename, std::ios::app);
+
 	file << "\n";
 	file << "{[C5]";
 	if (col == C_W)
@@ -256,8 +279,7 @@ void Game::saveSGF(int col, int winner) {
 		file << "[后手胜]";
 	else
 		file << "[平局]";
-	time_t t = time(nullptr);
-	tm *ft = localtime(&t);
+
 	file << "[" << ft->tm_year + 1900 << '.' << ft->tm_mon << '.' << ft->tm_mday << ' ';
 	file << " " << ft->tm_hour << ':' << ft->tm_min << "  合肥" << "]";
 	file << "[2018 CCGC]";
@@ -267,7 +289,7 @@ void Game::saveSGF(int col, int winner) {
 		if (i & 1) file << 'W';
 		else file << 'B';
 		if (inBorder(c))
-			file << '(' << (char)(c.x + 'A') << ',' << c.y + 1 << ')';
+			file << '('<< (char)(c.y + 'A')<<',' << BSIZE - c.x  << ')';
 		else
 			file << "(pass)";
 	}
@@ -324,6 +346,9 @@ vector<int> getBlackPoints(Board &gameboard, int points)
 
 void Game::runGameUser_Yuko(Player &player1, int col)
 {
+	cfg_timelim = true;
+	timeout_left = 0;
+	timeout_turn = 100000;
 	int point = 0;
 	//step 1,2,3
 	if (col == 1) {
@@ -335,16 +360,18 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 		if (straight) {
 			make_move(Coord::center + Coord(1,0));
 			int rd = rand() % 3;
-			static const Coord u[3] = { {0,1} ,{1,1},{-1,1} };
-			static const int points[3] = { 4,5,4 };
+			static const Coord u[3] = { {0,1} ,{1,1},{-1,1}};
+			static const int points[3] = { 4,5,4};
+			//static const Coord u[3] = { {-2,-2} ,{1,1},{-1,1}};
+			//static const int points[3] = { 2,3,4};
 			point = points[rd];
 			make_move(Coord::center + u[rd]);
 		}
 		else {
 			make_move(Coord::center + Coord(1, 1));
-			int rd = rand() % 4;
-			static const Coord u[4] = { { 0,1 } ,{ 0,-1 },{ -1,1 },{0,2} };
-			static const int points[4] = { 4,4,5,4 };
+			int rd = rand() % 3;
+			static const Coord u[3] = { { 0,1 } ,{ 0,-1 },{ -1,1 }};
+			static const int points[3] = { 4,4,5};
 			point = points[rd];
 			make_move(Coord::center + u[rd]);
 
@@ -436,7 +463,7 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 		clline(BSIZE + 2);
 		gotoXY(0, BSIZE + 2);
 		int cp0 = player1.cfg_playouts;
-		player1.cfg_playouts *= 2;
+		player1.cfg_playouts = std::max(2000, player1.cfg_playouts);
 		printf("■:Computer selecting...Do not click");
 		c = player1.run(gameboard, nowcol);
 		player1.cfg_playouts = cp0;
@@ -447,7 +474,7 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 		printf("打点数: %d", point);
 		std::sort(player1.searchlogger.playout_rate_move.begin(), player1.searchlogger.playout_rate_move.end(),
 			[](auto &a, auto &b) {return std::get<1>(a) > std::get<1>(b); });
-		for (int i = 0; i < std::min(point * 2, (int)player1.searchlogger.playout_rate_move.size()); i++) {
+		for (int i = 0; i < std::min(point * 2 + 6, (int)player1.searchlogger.playout_rate_move.size()); i++) {
 			gotoXY(0, BSIZE + i + 2);
 			int po; float wr; int move;
 			std::tie(po, wr, move) = player1.searchlogger.playout_rate_move[i];
@@ -456,7 +483,7 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 			printf("%4d ", po);
 			printf("%.3f", wr);
 			gotoXY(c.y * 2, c.x);
-			printf(" %d", i+1);
+			printf("%d", i+1);
 			selected[move] = 1;
 		}
 		while (1) {
@@ -507,7 +534,7 @@ void Game::runGameUser_Yuko(Player &player1, int col)
 		if (judgeWin(gameboard))
 			break;
 	}
-	if (winner=-1)
+	if (winner==-1)
 		winner = nowcol % 2 + 1;
 	if (gamestep == BLSIZE) winner = 0;
 	printWinner(winner);

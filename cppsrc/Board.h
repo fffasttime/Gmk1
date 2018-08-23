@@ -65,3 +65,14 @@ struct BoardHasher
 
 const int cx[8] = { -1,-1,-1,0,1,1, 1, 0 };
 const int cy[8] = { -1, 0, 1,1,1,0,-1,-1 };
+
+struct BoardAction {
+	Board board;
+	std::vector<int> moves;
+};
+
+extern std::vector<BoardAction> openingsBook;
+extern bool cfg_use_openings;
+
+int find_in_openingsBook(const Board &board);
+int load_openingsBook();

@@ -16,7 +16,7 @@ ofstream filelog;
 
 void logOpen(string filename)
 {
-	filelog.open(filename);
+	filelog.open(filename, std::ios::app);
 }
 
 void logRefrsh()

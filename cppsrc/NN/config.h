@@ -99,6 +99,10 @@ const int RESIDUAL_BLOCKS = 6;
 const int RESIDUAL_FILTERS = 96;
 const int FULL_CONNECT_SIZE = 128;
 const int ACTION_SPACE_N = BLSIZE;
+#ifdef RULE_GOMOKU
+const int INPUT_CHANNELS = 2;
+#endif
+#ifdef RULE_RENJU
 const int INPUT_CHANNELS = 3;
-
+#endif
 #endif

@@ -25,9 +25,11 @@ int run()
 	initTransformTable();
 	initZobristTable();
 	Prior::initPrior();
+	load_openingsBook();
 
 	using std::cout;
 	using std::endl;
+
 	int mode = 0; //0 : selfplay, 1 : protrol, 2: black, 3: while, 4: users
 	if (str_mode[0] == 'p') mode = 1;
 	else if (str_mode[0] == 'b') mode = 2;
@@ -62,6 +64,15 @@ int run()
 		return 1;
 	}
 	game.selfplay_count = selfplay_count;
+
+
+	if (cfg_max_playouts) {
+		auto time = std::time(NULL);
+		debug_s << "\n" << std::ctime(&time) << endl;
+		debug_s <<"mode:"<< mode << "  max po:" << cfg_max_playouts << "  use openings:" << cfg_use_openings << "  sw3"<<cfg_swap3<< endl;
+		logRefrsh();
+	}
+
 	if (mode == 0)
 	{
 		Player player1(network_file, playout, puct, true, true, 0.8f, 0.6f, 10);
