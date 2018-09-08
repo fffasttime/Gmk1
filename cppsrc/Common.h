@@ -10,7 +10,7 @@ using std::ofstream;
 using std::stringstream;
 using std::string;
 
-#define BSIZE (19)
+#define BSIZE (15)
 #define BLSIZE (BSIZE * BSIZE)
 #define FLOAT_INF (1e10)
 
