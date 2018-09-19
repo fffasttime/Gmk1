@@ -224,7 +224,7 @@ class TFProcess:
     def init_training(self, parafile, trainingfile):
         # Calculate loss on policy head
         cross_entropy = \
-            tf.nn.softmax_cross_entropy_with_logits(labels=self.y_,
+            tf.nn.softmax_cross_entropy_with_logits_v2(labels=self.y_,
                                                     logits=self.y_conv)
         self.policy_loss = tf.reduce_mean(cross_entropy)
         
