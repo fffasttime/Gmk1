@@ -87,22 +87,22 @@ void print(Board &gameboard, int col, int lastmove)
 		for (int j = 0; j<BSIZE; j++)
 		{
 			if (gameboard(i, j) == C_W)
-				printf("¡ð");
+				printf(" Â¡Ã°");
 			else if (gameboard(i, j) == C_B)
-				printf("¡ñ");
+				printf(" Â¡Ã±");
 			else if (gameboard(i, j) == C_E && (col == 0 ) || judgeAvailable(Coord(i, j).p()))
-				printf("©à");
+				printf(" Â©Ã  ");
 			else
-				printf("¡Á");
+				printf(" Â¡Ã");
 		}/*
 		 for (int j = 0; j<BSIZE; j++)
 		 {
 		 if (gameboard(i, j) == C_E)
-		 fout << "©à";
+		 fout << "Â©Ã ";
 		 else if (gameboard(i, j) == C_W)
-		 fout << "¡ð";
+		 fout << "Â¡Ã°";
 		 else
-		 fout << "¡ñ";
+		 fout << "Â¡Ã±";
 		 }*/
 		printf("\n");
 		//fout << "\n";
@@ -110,9 +110,9 @@ void print(Board &gameboard, int col, int lastmove)
 	if (col && lastmove != -1) {
 		gotoXY(lastmove % BSIZE * 2, lastmove / BSIZE);
 		if (col == C_W)
-			printf("¡ø");
+			printf(" Â¡Ã¸");
 		else
-			printf("¡÷");
+			printf(" Â¡Ã·");
 	}
 	printf("\n");
 }
